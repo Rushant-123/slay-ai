@@ -1,0 +1,31 @@
+// Configuration file for SnatchShot
+// This file should NOT be committed to version control
+// Add Config.xcconfig to your .gitignore file
+
+// Bundle ID: com.rushant.snatchshotapp
+// Team ID: 4PJ34WPV39
+
+// Google Sign In Configuration
+GOOGLE_CLIENT_ID = 450844969376-g4t9iv2qeitf6stbkvcbgn9auli91qb5.apps.googleusercontent.com
+
+// Apple Sign In Configuration
+APPLE_TEAM_ID = J3FB4NM6AY
+APPLE_SERVICES_ID = com.Rushant.snatchshotapp.signin
+APPLE_KEY_ID = 6NBGYCYRB7
+APPLE_PRIVATE_KEY = -----BEGIN PRIVATE KEY-----MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgDna12bOczK+UMjBRUC7Dh+vE05JKLYAyliG4Aj0dc0CgCgYIKoZIzj0DAQehRANCAAR9ttsG/eCcdr2zT14AJa1qs5MSDAgfmdnDPEjQub1oUdg42RLmvZ+s2FrTlTKoAaPeyBB39QjlLL6ESjamPFS+-----END PRIVATE KEY-----
+
+// Database API Configuration
+DATABASE_API_BASE_URL = http://13.221.107.42:4000/api
+DATABASE_API_TIMEOUT = 30
+
+// Analytics Configuration
+// Mixpanel - Main project token
+MIXPANEL_TOKEN = cd4a90e61de738a65d45f68d22260ed2
+// For testing, use: 0f3e2bf7cbcac849008b25c27ba7cf1b
+
+// AppsFlyer Configuration
+APPSFLYER_DEV_KEY = 359SBFQ3jWDaaixAkLLYQe
+APPLE_APP_ID = 6752805655
+
+// Other API keys and configuration
+// Add other sensitive configuration here
