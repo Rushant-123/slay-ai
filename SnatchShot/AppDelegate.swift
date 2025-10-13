@@ -14,51 +14,54 @@ import Mixpanel
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
 
-        // Configure Google Sign In
+        // Configure Google Sign In (critical - needs to be immediate)
         let clientID = Configuration.shared.googleClientID
         GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
 
-        // Configure AppsFlyer
-        AppsFlyerLib.shared().appsFlyerDevKey = Configuration.shared.appsFlyerDevKey
-        AppsFlyerLib.shared().appleAppID = Configuration.shared.appleAppID
-        AppsFlyerLib.shared().delegate = self
-        #if DEBUG
-        AppsFlyerLib.shared().isDebug = true
-        #endif
+        // Initialize critical SDKs immediately on main thread
+        initializeCriticalSDKs()
 
-        // Configure Mixpanel
-        Mixpanel.initialize(token: Configuration.shared.mixpanelToken, trackAutomaticEvents: true)
-
-        // Configure Superwall with purchase controller for forwarding events
-        let purchaseController = PurchaseController()
-        Superwall.configure(
-            apiKey: "pk_zD2e3MR_FLmW0q5mFscV3",
-            purchaseController: purchaseController
-        )
-
-        // Ensure subscription status is set immediately and also after a short delay
-        // in case Superwall initialization is asynchronous
-        Superwall.shared.subscriptionStatus = .inactive
-
-        // Identify user with Superwall (use device ID for now)
-        let userId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown_user"
-        Superwall.shared.identify(userId: userId)
-
-        // Set subscription status after identification
-        Superwall.shared.subscriptionStatus = .inactive
-
-        // Double-check subscription status after a short delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            Superwall.shared.subscriptionStatus = .inactive
-            print("✅ Superwall subscription status double-checked after identification")
+        // Initialize remaining third-party SDKs in background (non-blocking)
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            self?.initializeRemainingSDKs()
         }
 
-        print("✅ Superwall configured, subscription status and user attributes set")
-
-        // Debug: Print configuration status (remove in production)
-        Configuration.shared.printConfiguration()
-
         return true
+    }
+
+    private func initializeCriticalSDKs() {
+        // Mixpanel is now initialized in SnatchShotApp.init()
+    }
+
+    private func initializeRemainingSDKs() {
+        // Configure AppsFlyer (properties set on main thread)
+        let appsFlyerKey = Configuration.shared.appsFlyerDevKey
+        let appleAppID = Configuration.shared.appleAppID
+
+        DispatchQueue.main.async {
+            AppsFlyerLib.shared().appsFlyerDevKey = appsFlyerKey
+            AppsFlyerLib.shared().appleAppID = appleAppID
+            AppsFlyerLib.shared().delegate = self
+            #if DEBUG
+            AppsFlyerLib.shared().isDebug = true
+            #endif
+        }
+
+        // Start AppsFlyer in background after a short delay to ensure configuration is set
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 0.1) {
+            DispatchQueue.main.async {
+                AppsFlyerLib.shared().start()
+            }
+        }
+
+        // Superwall is configured in SnatchShotApp.init()
+
+        print("✅ Remaining third-party SDKs initialized in background")
+
+        // Debug: Print configuration status (only in debug builds)
+        #if DEBUG
+        Configuration.shared.printConfiguration()
+        #endif
     }
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {

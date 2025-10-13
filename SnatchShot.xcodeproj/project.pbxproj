@@ -41,6 +41,9 @@
 		86B5451C2E79720C00FEADDB /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86B5451B2E79720B00FEADDB /* OnboardingView.swift */; };
 		86B5451E2E79782F00FEADDB /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86B5451D2E79782F00FEADDB /* SignUpView.swift */; };
 		86EAFC592E87CE7F00D301BF /* CameraTutorialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86EAFC582E87CE7F00D301BF /* CameraTutorialView.swift */; };
+		86EAFC5B2E8D917600D301BF /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86EAFC5A2E8D917600D301BF /* SubscriptionManager.swift */; };
+		86EAFCAE2E8FC90300D301BF /* SuperwallPurchaseController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86EAFCAD2E8FC90300D301BF /* SuperwallPurchaseController.swift */; };
+		86EAFCAF2E8FC90300D301BF /* SuperwallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86EAFCAC2E8FC90300D301BF /* SuperwallManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -94,6 +97,9 @@
 		86B5451B2E79720B00FEADDB /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		86B5451D2E79782F00FEADDB /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
 		86EAFC582E87CE7F00D301BF /* CameraTutorialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraTutorialView.swift; sourceTree = "<group>"; };
+		86EAFC5A2E8D917600D301BF /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
+		86EAFCAC2E8FC90300D301BF /* SuperwallManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperwallManager.swift; sourceTree = "<group>"; };
+		86EAFCAD2E8FC90300D301BF /* SuperwallPurchaseController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperwallPurchaseController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -178,6 +184,9 @@
 		86B545082E77E9E100FEADDB /* SnatchShot */ = {
 			isa = PBXGroup;
 			children = (
+				86EAFCAC2E8FC90300D301BF /* SuperwallManager.swift */,
+				86EAFCAD2E8FC90300D301BF /* SuperwallPurchaseController.swift */,
+				86EAFC5A2E8D917600D301BF /* SubscriptionManager.swift */,
 				86EAFC532E8689EE00D301BF /* Resources */,
 				860C37B02E82A87000F72A48 /* FacePhotoView.swift */,
 				860C37B12E82A87000F72A48 /* FullBodyPhotoView.swift */,
@@ -381,6 +390,9 @@
 				869FB6AD2E7AC3AE007CB309 /* PoseSuggestionsView.swift in Sources */,
 				86B545172E77EA8A00FEADDB /* CameraPreview.swift in Sources */,
 				86B5450E2E77E9E100FEADDB /* SnatchShotApp.swift in Sources */,
+				86EAFC5B2E8D917600D301BF /* SubscriptionManager.swift in Sources */,
+				86EAFCAE2E8FC90300D301BF /* SuperwallPurchaseController.swift in Sources */,
+				86EAFCAF2E8FC90300D301BF /* SuperwallManager.swift in Sources */,
 				86B5451E2E79782F00FEADDB /* SignUpView.swift in Sources */,
 				860C37D32E83E80300F72A48 /* CameraViewModel.swift in Sources */,
 				86B545112E77EA0400FEADDB /* CameraService.swift in Sources */,
@@ -572,6 +584,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SnatchShot/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Slay AI";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "We use the camera to capture photos for pose suggestions.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Used to suggest camera settings for your current spot.";
@@ -580,9 +593,9 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "need it to check if photo is good";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -592,9 +605,13 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.rushant.snatchshotapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -614,6 +631,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SnatchShot/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Slay AI";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "We use the camera to capture photos for pose suggestions.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Used to suggest camera settings for your current spot.";
@@ -622,9 +640,9 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "need it to check if photo is good";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -634,9 +652,13 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.rushant.snatchshotapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -654,7 +676,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SnatchShot.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SnatchShot";
 			};
 			name = Debug;
@@ -673,7 +695,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SnatchShot.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SnatchShot";
 			};
 			name = Release;
@@ -690,7 +712,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = SnatchShot;
 			};
 			name = Debug;
@@ -707,7 +729,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = SnatchShot;
 			};
 			name = Release;

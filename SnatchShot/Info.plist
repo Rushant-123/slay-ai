@@ -2,20 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleIdentifier</key>
+	<key>CFBundleTypeRole</key>
+	<string>Editor</string>
+	<key>CFBundleURLName</key>
 	<string>com.rushant.snatchshotapp</string>
-
-	<key>CFBundleDisplayName</key>
-	<string>Slay AI</string>
-
-	<!-- Google Sign In Configuration -->
-	<key>GOOGLE_CLIENT_ID</key>
-	<string>$(GOOGLE_CLIENT_ID)</string>
-
-	<key>Privacy – Photo Library Usage Description</key>
-	<string>We show your recent photos for selection</string>
-
-	<!-- URL Schemes Configuration -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -24,7 +14,6 @@
 				<string>com.googleusercontent.apps.450844969376-g4t9iv2qeitf6stbkvcbgn9auli91qb5</string>
 			</array>
 		</dict>
-		<!-- Superwall Custom URL Scheme -->
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
@@ -36,29 +25,14 @@
 			</array>
 		</dict>
 	</array>
-
-	<key>CFBundleTypeRole</key>
-	<string>Editor</string>
-
-	<key>CFBundleURLName</key>
-	<string>com.rushant.snatchshotapp</string>
-
-	<!-- Query Schemes for Google Sign In -->
+	<key>GOOGLE_CLIENT_ID</key>
+	<string>$(GOOGLE_CLIENT_ID)</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>googlegmail</string>
 		<string>googlechrome</string>
 		<string>googlechromes</string>
 	</array>
-
-	<!-- Additional Privacy Permissions for Google Sign In -->
-	<key>Privacy – Calendars Usage Description</key>
-	<string>Google Sign In may request access to your calendar</string>
-
-	<key>Privacy – Reminders Usage Description</key>
-	<string>Google Sign In may request access to your reminders</string>
-
-	<!-- App Transport Security Settings -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -71,21 +45,21 @@
 		<true/>
 		<key>NSExceptionDomains</key>
 		<dict>
-		<key>13.221.107.42</key>
-		<dict>
-			<key>NSExceptionAllowsInsecureHTTPLoads</key>
-			<true/>
-			<key>NSExceptionMinimumTLSVersion</key>
-			<string>TLSv1.0</string>
-			<key>NSExceptionRequiresForwardSecrecy</key>
-			<false/>
-			<key>NSIncludesSubdomains</key>
-			<false/>
-			<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
-			<true/>
-			<key>NSAllowsArbitraryLoadsInWebContent</key>
-			<true/>
-		</dict>
+			<key>13.221.107.42</key>
+			<dict>
+				<key>NSAllowsArbitraryLoadsInWebContent</key>
+				<true/>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+				<key>NSExceptionRequiresForwardSecrecy</key>
+				<false/>
+				<key>NSIncludesSubdomains</key>
+				<false/>
+				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
 			<key>localhost</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
@@ -95,5 +69,19 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>Privacy – Calendars Usage Description</key>
+	<string>Google Sign In may request access to your calendar</string>
+	<key>Privacy – Camera Usage Description</key>
+	<string>We use the camera to capture your photos and analyze your poses to suggest personalized fashion outfits and styling recommendations</string>
+	<key>Privacy – Microphone Usage Description</key>
+	<string>We use the microphone for voice interactions and audio recording</string>
+	<key>Privacy – Photo Library Usage Description</key>
+	<string>We show your recent photos for selection</string>
+	<key>Privacy – Reminders Usage Description</key>
+	<string>Google Sign In may request access to your reminders</string>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+	</array>
 </dict>
 </plist>

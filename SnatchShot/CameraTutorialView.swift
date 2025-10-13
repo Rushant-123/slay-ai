@@ -26,6 +26,11 @@ struct CameraTutorialView: View {
             highlightArea: .topControls
         ),
         TutorialStep(
+            title: "Quick Settings Access",
+            description: "Tap the logo to access settings, subscription, and usage info",
+            highlightArea: .logo
+        ),
+        TutorialStep(
             title: "You're All Set!",
             description: "Take a photo and watch AI create your perfect poses",
             highlightArea: .none
@@ -45,7 +50,7 @@ struct CameraTutorialView: View {
                 VStack(spacing: 16) {
                     // Progress indicator
                     HStack(spacing: 8) {
-                        ForEach(0..<5) { index in
+                        ForEach(0..<6) { index in
                             Circle()
                                 .fill(index <= viewModel.currentTutorialStep ? Color(red: 0.600, green: 0.545, blue: 0.941) : Color.white.opacity(0.3))
                                 .frame(width: 8, height: 8)
@@ -78,7 +83,7 @@ struct CameraTutorialView: View {
                         }
 
                         Button(action: viewModel.advanceTutorial) {
-                            Text(viewModel.currentTutorialStep < 4 ? "Next" : "Got it!")
+                            Text(viewModel.currentTutorialStep < 5 ? "Next" : "Got it!")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.white)
                                 .frame(height: 44)
@@ -140,6 +145,14 @@ struct CameraTutorialView: View {
                 .position(x: geometry.size.width / 2, y: 80)
                 .opacity(0.8)
 
+        case .logo:
+            // Highlight logo button
+            Circle()
+                .stroke(Color(red: 0.600, green: 0.545, blue: 0.941), lineWidth: 3)
+                .frame(width: 120, height: 120)
+                .position(x: geometry.size.width - 130, y: 80)
+                .opacity(0.8)
+
         case .none:
             EmptyView()
         }
@@ -153,5 +166,5 @@ struct TutorialStep {
 }
 
 enum HighlightArea {
-    case shutter, center, leftToggles, topControls, none
+    case shutter, center, leftToggles, topControls, logo, none
 }

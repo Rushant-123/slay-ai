@@ -11,6 +11,9 @@ import UIKit
 import AVFoundation
 import SuperwallKit
 
+// Import for API response types
+import Foundation // Already imported, but for API types
+
 // MARK: - iOS WebSocket Architecture Notes
 //
 // iOS WebSocket Limitations:
@@ -477,7 +480,15 @@ NOTES FOR BACKEND:
 // Using existing models to avoid naming conflicts
 
 // MARK: - WebSocket Service
-class WebSocketService: NSObject, ObservableObject {
+public class WebSocketService: NSObject, ObservableObject {
+    public static let shared = WebSocketService()
+    
+    public override init() {
+        super.init()
+        // Load saved usage data immediately
+        loadSavedUsageData()
+    }
+    
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
     private var serverURL: URL {
@@ -496,6 +507,46 @@ class WebSocketService: NSObject, ObservableObject {
 
     // Track analysis completion for proper UI sequencing
     @Published var photoAnalysisCompleted = false
+
+    // Track usage for UI display
+    @Published var currentUsage: Int? {
+        didSet {
+            if let value = currentUsage {
+                UserDefaults.standard.set(value, forKey: "last_known_usage")
+            }
+        }
+    }
+    @Published var usageLimit: Int? {
+        didSet {
+            if let value = usageLimit {
+                UserDefaults.standard.set(value, forKey: "last_known_limit")
+            }
+        }
+    }
+    @Published var userPlan: String? {
+        didSet {
+            if let value = userPlan {
+                UserDefaults.standard.set(value, forKey: "last_known_plan")
+            }
+        }
+    }
+    
+    private func loadSavedUsageData() {
+        currentUsage = UserDefaults.standard.object(forKey: "last_known_usage") as? Int
+        usageLimit = UserDefaults.standard.object(forKey: "last_known_limit") as? Int
+        userPlan = UserDefaults.standard.string(forKey: "last_known_plan")
+        
+        print("📊 Loading saved usage data...")
+        print("📊 Current usage from UserDefaults: \(currentUsage.map(String.init) ?? "nil")")
+        print("📊 Usage limit from UserDefaults: \(usageLimit.map(String.init) ?? "nil")")
+        print("📊 User plan from UserDefaults: \(userPlan ?? "nil")")
+        
+        // Request fresh data immediately after loading saved data
+        DispatchQueue.main.async { [weak self] in
+            self?.requestUsageData()
+            print("📊 Requested fresh usage data after loading saved data")
+        }
+    }
 
     // Store images when processing UI isn't ready yet
     private var pendingImages: [PoseSuggestion] = []
@@ -543,6 +594,8 @@ class WebSocketService: NSObject, ObservableObject {
     // MARK: - Camera Service Integration
     func setCameraService(_ cameraService: CameraService) {
         self.cameraService = cameraService
+        // Set bidirectional reference so cameraService can access webSocketService
+        cameraService.webSocketService = self
     }
     
     func setCameraViewModel(_ cameraViewModel: CameraViewModel) {
@@ -554,8 +607,13 @@ class WebSocketService: NSObject, ObservableObject {
         // Check if already connected to avoid duplicate connections
         if isConnected && webSocketTask != nil {
             print("🔌 WebSocket already connected - reusing existing connection")
+            // Request usage data even if already connected
+            requestUsageData()
             return
         }
+
+        // Reset state for clean connection
+        reset()
 
         // Clean up any existing connection state
         if webSocketTask != nil {
@@ -581,17 +639,101 @@ class WebSocketService: NSObject, ObservableObject {
         print("🔌 - Large images must use HTTP, small updates use WebSocket")
         print("🔌 - Current approach (HTTP + WebSocket) is the recommended solution")
 
+        // Create new session and task
         urlSession = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
         webSocketTask = urlSession?.webSocketTask(with: serverURL)
+        
+        // Log current state before connecting
+        print("🔌 Current state before connecting:")
+        print("🔌 - isConnected: \(isConnected)")
+        print("🔌 - webSocketTask: \(webSocketTask != nil ? "exists" : "nil")")
+        print("🔌 - urlSession: \(urlSession != nil ? "exists" : "nil")")
+        print("🔌 - currentUsage: \(currentUsage.map(String.init) ?? "nil")")
+        print("🔌 - usageLimit: \(usageLimit.map(String.init) ?? "nil")")
+        
+        // Start the connection
         webSocketTask?.resume()
-
         receiveMessage()
 
-        // Set connected state immediately for optimistic UI updates
-        DispatchQueue.main.async {
+        // Set connected state and request usage data
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
             self.isConnected = true
             self.connectionError = nil
-            print("🔌 WebSocket connection initiated - waiting for server confirmation")
+            print("🔌 WebSocket connection initiated")
+            
+            // Load any saved data first
+            print("🔌 Loading saved usage data while waiting for connection...")
+            self.loadSavedUsageData()
+            
+            // Request fresh data immediately
+            print("🔌 Requesting fresh usage data after connection...")
+            self.requestUsageData()
+            
+            // Schedule multiple retries if data doesn't arrive
+            let retryIntervals = [2.0, 4.0, 8.0] // Retry after 2s, 4s, and 8s
+            for interval in retryIntervals {
+                DispatchQueue.main.asyncAfter(deadline: .now() + interval) { [weak self] in
+                    guard let self = self else { return }
+                    if self.currentUsage == nil || self.usageLimit == nil {
+                        print("⚠️ Usage data not received after \(interval)s - retrying request")
+                        self.requestUsageData()
+                    }
+                }
+            }
+        }
+    }
+
+    func requestUsageData() {
+        guard let userId = UserDefaults.standard.string(forKey: "database_user_id") else {
+            print("❌ No user ID found for usage data request")
+            return
+        }
+
+        // Check WebSocket connection
+        guard isConnected, let webSocketTask = webSocketTask else {
+            print("❌ Cannot request usage data - WebSocket not connected")
+            // Try to reconnect
+            connect()
+            return
+        }
+
+        let message = [
+            "type": "get_usage_stats",
+            "userId": userId
+        ]
+
+        do {
+            let data = try JSONSerialization.data(withJSONObject: message)
+            let messageString = String(data: data, encoding: .utf8)!
+            let message = URLSessionWebSocketTask.Message.string(messageString)
+            
+            print("📊 Requesting usage data for user: \(userId)")
+            print("📊 Current WebSocket state: \(isConnected ? "Connected" : "Disconnected")")
+            print("📊 Current usage: \(currentUsage.map(String.init) ?? "nil")")
+            print("📊 Current limit: \(usageLimit.map(String.init) ?? "nil")")
+            
+            webSocketTask.send(message) { [weak self] error in
+                if let error = error {
+                    print("❌ Failed to request usage data: \(error)")
+                    // Try to reconnect on error
+                    DispatchQueue.main.async {
+                        self?.connect()
+                    }
+                } else {
+                    print("📤 Usage data request sent successfully")
+                    // Schedule a retry if we don't get a response
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                        guard let self = self else { return }
+                        if self.currentUsage == nil || self.usageLimit == nil {
+                            print("⚠️ No usage data received after 2s - retrying request")
+                            self.requestUsageData()
+                        }
+                    }
+                }
+            }
+        } catch {
+            print("❌ Failed to encode usage data request: \(error)")
         }
     }
 
@@ -603,21 +745,128 @@ class WebSocketService: NSObject, ObservableObject {
         DispatchQueue.main.async {
             self.isConnected = false
             self.receivedImages.removeAll()
+            // Reset connection state to ensure clean reconnection
+            self.connectionError = nil
+            self.reset()
         }
     }
 
     // MARK: - Message Handling
-    private func receiveMessage() {
-        webSocketTask?.receive { [weak self] result in
-            guard let self = self else { return }
+    func receiveMessage() {
+        guard let webSocketTask = webSocketTask else {
+            print("❌ No WebSocket task available for receiving messages")
+            return
+        }
 
+        webSocketTask.receive { [weak self] result in
+            guard let self = self else { return }
+            
             switch result {
             case .success(let message):
-                self.handleMessage(message)
-                // Continue listening for more messages
+                switch message {
+                case .string(let text):
+                    print("📨 Received WebSocket message: \(text)")
+                    self.handleTextMessage(text)
+                case .data(let data):
+                    if let text = String(data: data, encoding: .utf8) {
+                        print("📨 Received WebSocket data message: \(text)")
+                        self.handleTextMessage(text)
+                    }
+                @unknown default:
+                    print("❌ Unknown message type received")
+                }
+                
+                // Continue receiving messages
                 self.receiveMessage()
-
+                
             case .failure(let error):
+                print("❌ WebSocket receive error: \(error)")
+                
+                // Attempt to reconnect on failure
+                DispatchQueue.main.async {
+                    self.isConnected = false
+                    self.connect() // This will handle cleanup and reconnection
+                }
+            }
+        }
+    func handleTextMessage(_ text: String) {
+        do {
+            // Parse the message as a WebSocket event
+            let event = try JSONDecoder().decode(WebSocketEvent.self, from: text.data(using: .utf8)!)
+            
+            // Handle the event based on its type
+            switch event.type {
+            case .connection_established:
+                print("🔌 ✅ WebSocket connection successfully opened")
+                print("🔌 ℹ️ Connection established - ready for low-latency image processing")
+                
+                DispatchQueue.main.async {
+                    self.isConnected = true
+                    self.connectionError = nil
+                    print("🔌 Connection state updated to: Connected")
+                    
+                    // Request usage data after successful connection
+                    self.requestUsageData()
+                    
+                    // Schedule a retry if data doesn't arrive quickly
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        if self.currentUsage == nil || self.usageLimit == nil {
+                            print("⚠️ Usage data not received after 2s - retrying request")
+                            self.requestUsageData()
+                        }
+                    }
+                }
+                
+            case .usage_stats:
+                print("📊 Usage stats received")
+                if let currentUsage = event.currentUsage,
+                   let limit = event.limit,
+                   let plan = event.plan {
+                    print("📊 Current usage: \(currentUsage)/\(limit) (\(plan))")
+                    
+                    // Update published properties for UI
+                    DispatchQueue.main.async {
+                        self.currentUsage = currentUsage
+                        self.usageLimit = limit
+                        self.userPlan = plan
+                        
+                        // Update subscription manager
+                        SubscriptionManager.shared.updateUsage(current: currentUsage, limit: limit)
+                        if let appSubscriptionPlan = AppSubscriptionPlan(rawValue: plan) {
+                            SubscriptionManager.shared.state.currentPlan = appSubscriptionPlan
+                        }
+                    }
+                }
+                
+            default:
+                // Handle other event types
+                break
+            }
+        } catch {
+            print("❌ Failed to decode WebSocket message: \(error)")
+            print("Message was: \(text)")
+        }
+    }
+
+    func handleWebSocketMessage(_ result: Result<URLSessionWebSocketTask.Message, Error>) {
+        switch result {
+        case .success(let message):
+            switch message {
+            case .string(let text):
+                print("📨 Received WebSocket message: \(text)")
+                self.handleTextMessage(text)
+            case .data(let data):
+                if let text = String(data: data, encoding: .utf8) {
+                    print("📨 Received WebSocket data message: \(text)")
+                    self.handleTextMessage(text)
+                }
+            @unknown default:
+                print("❌ Unknown message type received")
+            }
+            // Continue listening for more messages
+            self.receiveMessage()
+            
+        case .failure(let error):
                 let nsError = error as NSError
 
                 // Handle "Message too long" errors gracefully
@@ -877,20 +1126,53 @@ class WebSocketService: NSObject, ObservableObject {
             if let currentUsage = event.currentUsage,
                let limit = event.limit,
                let plan = event.plan {
-                print("   📈 Current usage: \(currentUsage)/\(limit) (\(plan))")
+                // Multiply limit by 4 for the actual limit
+                let actualLimit = limit * 4
+                print("   📈 Current usage: \(currentUsage)/\(actualLimit) (\(plan))")
                 if let resetDate = event.resetDate {
                     print("   📅 Resets on: \(resetDate)")
                 }
 
-                // Check if trial user has reached limit and show paywall
-                if currentUsage >= limit && plan == "trial" {
-                    print("   🎯 Trial user has reached limit (\(currentUsage)/\(limit)) - showing paywall")
+                // Update published properties for UI
+                DispatchQueue.main.async {
+                    self.currentUsage = currentUsage
+                    self.usageLimit = actualLimit // Use the actual limit
+                    self.userPlan = plan
+                }
+
+                // Update subscription manager with usage data
+                DispatchQueue.main.async {
+                    SubscriptionManager.shared.updateUsage(current: currentUsage, limit: actualLimit)
+
+                    // Update subscription plan if provided
+                    if let appSubscriptionPlan = AppSubscriptionPlan(rawValue: plan) {
+                        SubscriptionManager.shared.state.currentPlan = appSubscriptionPlan
+                    }
+
+                    // Update trial status based on plan
+                    if plan == "trial" {
+                        SubscriptionManager.shared.state.trialStatus = .active
+                    } else if plan != "trial" && SubscriptionManager.shared.state.trialStatus == .active {
+                        // If user has a paid plan but was in trial, trial is completed
+                        SubscriptionManager.shared.state.trialStatus = .expired
+                        SubscriptionManager.shared.state.isPaidSubscriber = true
+                    }
+                }
+
+                // Use subscription manager for paywall decisions
+                let paywallType = SubscriptionManager.shared.shouldShowPaywall()
+                if paywallType != .none && currentUsage >= limit {
+                    let placement = SubscriptionManager.shared.getPaywallPlacement()
+                    print("   🎯 User has reached limit (\(currentUsage)/\(limit)) - showing \(placement) paywall")
                     DispatchQueue.main.async {
-                        Superwall.shared.register(placement: "trial_ended")
-                        print("   💰 Superwall paywall shown for trial limit reached")
+                        Superwall.shared.register(placement: placement) {
+                            // Paywall shown - user will interact with it directly
+                            print("   💰 Superwall paywall interaction completed for \(placement)")
+                        }
+                        print("   💰 Superwall paywall shown for \(placement)")
                     }
                 } else {
-                    print("   ✅ Usage within limits or not a trial user")
+                    print("   ✅ Usage within limits")
                 }
             } else {
                 print("   ⚠️ Usage stats event missing required fields")
@@ -903,16 +1185,28 @@ class WebSocketService: NSObject, ObservableObject {
                let resetDate = event.resetDate {
                 print("   📊 Plan: \(plan), Limit: \(limit), Resets: \(resetDate)")
 
-                // Check if trial user has hit limit mid-session and show paywall
-                if plan == "trial" {
-                    print("   🎯 Trial user hit limit mid-session - showing paywall")
-                    DispatchQueue.main.async {
-                        Superwall.shared.register(placement: "trial_ended")
-                        print("   💰 Superwall paywall shown for mid-session trial limit")
+                // Update subscription manager with limit data
+                DispatchQueue.main.async {
+                    SubscriptionManager.shared.updateUsage(current: limit, limit: limit * 4) // At limit
+
+                    // Update subscription plan
+                    if let appSubscriptionPlan = AppSubscriptionPlan(rawValue: plan) {
+                        SubscriptionManager.shared.state.currentPlan = appSubscriptionPlan
                     }
-                } else {
-                    print("   📈 Paid user hit limit - would show upgrade paywall (not yet implemented)")
-                    // TODO: Show upgrade paywall for paid users
+                }
+
+                // Use subscription manager for paywall decisions
+                let paywallType = SubscriptionManager.shared.shouldShowPaywall()
+                if paywallType != .none {
+                    let placement = SubscriptionManager.shared.getPaywallPlacement()
+                    print("   🎯 User hit plan limit - showing \(placement) paywall")
+                    DispatchQueue.main.async {
+                        Superwall.shared.register(placement: placement) {
+                            // Paywall shown - user will interact with it directly
+                            print("   💰 Superwall paywall interaction completed for \(placement)")
+                        }
+                        print("   💰 Superwall paywall shown for \(placement)")
+                    }
                 }
             } else {
                 print("   ⚠️ Plan limit reached event missing required fields")
@@ -1040,10 +1334,16 @@ class WebSocketService: NSObject, ObservableObject {
                 do {
                     let withinLimit = try await trialCheckTask.value
                     if !withinLimit {
-                        print("🎯 Trial usage limit reached (5 photos), showing trial_ended paywall")
+                        print("🎯 Trial usage limit reached (5 photos), showing appropriate paywall")
                         await MainActor.run {
-                            Superwall.shared.register(placement: "trial_ended")
-                            print("💰 Superwall paywall shown (note: errors are handled internally by Superwall)")
+                            let paywallType = SubscriptionManager.shared.shouldShowPaywall()
+                            if paywallType != .none {
+                                let placement = SubscriptionManager.shared.getPaywallPlacement()
+                                Superwall.shared.register(placement: placement) {
+                                    print("💰 Superwall paywall interaction completed for \(placement)")
+                                }
+                                print("💰 Superwall paywall shown for \(placement)")
+                            }
                         }
                         // Note: Processing may have already started, but user sees paywall
                     } else {
@@ -1128,9 +1428,6 @@ class WebSocketService: NSObject, ObservableObject {
             }
         }
 
-        // Store the HTTP response data for fallback image retrieval
-        var httpResponseData: Data?
-
         // Make HTTP request
         URLSession.shared.dataTask(with: request) { [shouldTrackUsage, currentUserId] data, response, error in
             DispatchQueue.main.async { [shouldTrackUsage, currentUserId] in
@@ -1145,9 +1442,6 @@ class WebSocketService: NSObject, ObservableObject {
                     if (200...299).contains(httpResponse.statusCode) {
                         print("✅ HTTP request successful - WebSocket should now receive processing events")
                         print("🔄 Waiting for WebSocket events: processing_started, individual_image_completed, etc.")
-
-                        // Store response data for fallback
-                        httpResponseData = data
 
                         // Try to parse HTTP response for image data
                         if let responseData = data {
@@ -1315,7 +1609,7 @@ class WebSocketService: NSObject, ObservableObject {
 
 // MARK: - URLSessionWebSocketDelegate
 extension WebSocketService: URLSessionWebSocketDelegate {
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocolName: String?) {
+    public func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocolName: String?) {
         print("🔌 ✅ WebSocket connection successfully opened")
         print("🔌 ℹ️ Connection established - ready for low-latency image processing")
         if let protocolValue = protocolName {
@@ -1328,7 +1622,7 @@ extension WebSocketService: URLSessionWebSocketDelegate {
         }
     }
 
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+    public func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
         print("🔌 ❌ WebSocket connection closed with code: \(closeCode.rawValue)")
         if let reason = reason, let reasonString = String(data: reason, encoding: .utf8) {
             print("🔌 Close reason: \(reasonString)")
@@ -1339,7 +1633,7 @@ extension WebSocketService: URLSessionWebSocketDelegate {
         }
     }
 
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+    public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if let error = error {
             let nsError = error as NSError
 
@@ -1709,6 +2003,240 @@ extension WebSocketService: URLSessionWebSocketDelegate {
         }
 
         return summary
+    }
+
+    // MARK: - Backend Upload Methods
+
+    func uploadPhotoToBackend(image: UIImage,
+                             userId: String,
+                             isGenerated: Bool = false,
+                             metadata: PhotoMetadata? = nil) async throws -> APIPhoto {
+
+        let urlString = "http://13.221.107.42:4000/api/pictures/upload"
+        guard let url = URL(string: urlString) else {
+            throw URLError(.badURL)
+        }
+
+        // Resize and compress image to reduce file size
+        let resizedImage = resizeImageForUpload(image)
+        guard let imageData = resizedImage.jpegData(compressionQuality: 0.6) else {
+            throw URLError(.cannotDecodeContentData)
+        }
+
+        // Check file size and compress further if needed
+        let finalImageData: Data
+        if imageData.count > 2 * 1024 * 1024 { // If larger than 2MB
+            guard let compressedData = resizedImage.jpegData(compressionQuality: 0.3) else {
+                throw URLError(.cannotDecodeContentData)
+            }
+            finalImageData = compressedData
+            print("📦 Compressed photo from \(imageData.count) to \(compressedData.count) bytes")
+        } else {
+            finalImageData = imageData
+        }
+
+        let fileName = "photo_\(UUID().uuidString).jpg"
+        let boundary = "Boundary-\(UUID().uuidString)"
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        // Create multipart form data
+        var body = Data()
+
+        // Add image file
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"image\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(finalImageData)
+        body.append("\r\n".data(using: .utf8)!)
+
+        // Add userId
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"userId\"\r\n\r\n".data(using: .utf8)!)
+        body.append(userId.data(using: .utf8)!)
+        body.append("\r\n".data(using: .utf8)!)
+
+        // Add isGenerated
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"isGenerated\"\r\n\r\n".data(using: .utf8)!)
+        body.append((isGenerated ? "true" : "false").data(using: .utf8)!)
+        body.append("\r\n".data(using: .utf8)!)
+
+        // Add metadata if provided
+        if let metadata = metadata {
+            // Convert PhotoMetadata to JSON data
+            do {
+                let encoder = JSONEncoder()
+                encoder.dateEncodingStrategy = .iso8601
+                let metadataData = try encoder.encode(metadata)
+
+                body.append("--\(boundary)\r\n".data(using: .utf8)!)
+                body.append("Content-Disposition: form-data; name=\"metadata\"\r\n\r\n".data(using: .utf8)!)
+                body.append(metadataData)
+                body.append("\r\n".data(using: .utf8)!)
+            } catch {
+                print("⚠️ Failed to encode metadata: \(error)")
+            }
+        }
+
+        // Close boundary
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+        request.httpBody = body
+
+        print("📤 Backend Photo Upload Request:")
+        print("URL: \(urlString)")
+        print("File size: \(finalImageData.count) bytes")
+        print("User ID: \(userId)")
+        print("Is Generated: \(isGenerated)")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        print("📥 Backend Photo Upload Response Status: \(httpResponse.statusCode)")
+
+        if httpResponse.statusCode == 201 {
+            let uploadResponse = try JSONDecoder().decode(PhotoUploadResponse.self, from: data)
+            print("✅ Photo uploaded to backend successfully: \(uploadResponse.picture._id)")
+            return uploadResponse.picture
+        }
+
+        // Generic error
+        let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+        print("❌ Backend photo upload failed with status \(httpResponse.statusCode): \(errorMessage)")
+        throw NSError(domain: "BackendUpload", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+    }
+
+
+
+    func uploadReferenceImageToBackend(image: UIImage,
+                                       referenceType: String,
+                                       userId: String) async throws -> (reference: ReferenceImage, genderResult: GenderDetectionResult?) {
+
+        let urlString = "http://13.221.107.42:4000/api/references/upload?userId=\(userId)"
+        guard let url = URL(string: urlString) else {
+            throw URLError(.badURL)
+        }
+
+        // Resize and compress image to reduce file size
+        let resizedImage = resizeImageForUpload(image)
+        guard let imageData = resizedImage.jpegData(compressionQuality: 0.6) else {
+            throw URLError(.cannotDecodeContentData)
+        }
+
+        // Check file size and compress further if needed
+        let finalImageData: Data
+        if imageData.count > 2 * 1024 * 1024 { // If larger than 2MB
+            guard let compressedData = resizedImage.jpegData(compressionQuality: 0.3) else {
+                throw URLError(.cannotDecodeContentData)
+            }
+            finalImageData = compressedData
+            print("📦 Compressed reference image from \(imageData.count) to \(compressedData.count) bytes")
+        } else {
+            finalImageData = imageData
+        }
+
+        let fileName = "ref_\(UUID().uuidString)_\(referenceType).jpg"
+        let boundary = "Boundary-\(UUID().uuidString)"
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        // Create multipart form data
+        var body = Data()
+
+        // Add image file
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"image\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(finalImageData)
+        body.append("\r\n".data(using: .utf8)!)
+
+        // Add reference_type
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"reference_type\"\r\n\r\n".data(using: .utf8)!)
+        body.append(referenceType.data(using: .utf8)!)
+        body.append("\r\n".data(using: .utf8)!)
+
+        // Close boundary
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+        request.httpBody = body
+
+        print("📤 Backend Reference Image Upload Request:")
+        print("URL: \(urlString)")
+        print("Reference Type: \(referenceType)")
+        print("File size: \(finalImageData.count) bytes")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        print("📥 Backend Reference Upload Response Status: \(httpResponse.statusCode)")
+
+        // Handle different response codes
+        if httpResponse.statusCode == 201 {
+            // Success - parse success response
+            let uploadResponse = try JSONDecoder().decode(ReferenceImageUploadResponse.self, from: data)
+            print("✅ Reference image uploaded to backend successfully: \(uploadResponse.reference_image._id)")
+
+            return (reference: uploadResponse.reference_image, genderResult: uploadResponse.gender_detection)
+
+        } else if httpResponse.statusCode == 400 {
+            // Gender detection rejection - parse error response
+            if let errorResponse = try? JSONDecoder().decode(ReferenceUploadError.self, from: data) {
+                print("❌ Reference upload rejected: \(errorResponse.error)")
+                throw NSError(domain: "BackendUpload", code: 400, userInfo: [NSLocalizedDescriptionKey: errorResponse.error])
+            }
+        }
+
+        // Generic error
+        let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+        print("❌ Backend upload failed with status \(httpResponse.statusCode): \(errorMessage)")
+        throw NSError(domain: "BackendUpload", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+    }
+
+    private func resizeImageForUpload(_ image: UIImage) -> UIImage {
+        let maxDimension: CGFloat = 2048
+        let minDimension: CGFloat = 1024
+
+        let size = image.size
+        var newSize = size
+
+        // If image is too large, scale it down
+        if size.width > maxDimension || size.height > maxDimension {
+            let aspectRatio = size.width / size.height
+            if size.width > size.height {
+                newSize = CGSize(width: maxDimension, height: maxDimension / aspectRatio)
+            } else {
+                newSize = CGSize(width: maxDimension * aspectRatio, height: maxDimension)
+            }
+        }
+
+        // If image is too small, scale it up to minimum size
+        if size.width < minDimension && size.height < minDimension {
+            let aspectRatio = size.width / size.height
+            if size.width < size.height {
+                newSize = CGSize(width: minDimension, height: minDimension / aspectRatio)
+            } else {
+                newSize = CGSize(width: minDimension * aspectRatio, height: minDimension)
+            }
+        }
+
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        image.draw(in: CGRect(origin: .zero, size: newSize))
+        let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+
+        return resizedImage ?? image
     }
 
 

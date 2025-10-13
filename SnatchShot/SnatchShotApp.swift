@@ -10,6 +10,7 @@ import SwiftUI
 import GoogleSignIn
 import SuperwallKit
 import AppsFlyerLib
+import Mixpanel
 #endif
 
 @main
@@ -21,22 +22,24 @@ struct SnatchShotApp: App {
     @AppStorage("hasCompletedPersonalization") private var hasCompletedPersonalization = false
     @AppStorage("hasCompletedFacePhoto") private var hasCompletedFacePhoto = false
     @AppStorage("hasCompletedUserVerification") private var hasCompletedUserVerification = false
+    @AppStorage("isGuestMode") private var isGuestMode = false
 
     // Shared services for the entire app
     @StateObject private var cameraService = CameraService()
     @StateObject private var webSocketService = WebSocketService()
 
     init() {
-        // 🔄 Reset for testing - uncomment to reset all flags and test full flow
-        // resetAppStateForTesting() // COMMENTED OUT - direct start
-
-        // Start AppsFlyer tracking
-        AppsFlyerLib.shared().start()
-
-        // Check database connection on app start
-        Task {
-            await Self.checkDatabaseConnection()
-        }
+        // Initialize Mixpanel first since other SDKs depend on it
+        Mixpanel.initialize(token: "d41d8cd98f00b204e9800998ecf8427e", trackAutomaticEvents: true)
+        print("✅ Mixpanel initialized on main thread")
+        
+        // Configure Superwall after analytics are ready
+        SuperwallManager.shared.configure()
+        
+        // Initialize subscription state
+        SuperwallManager.shared.updateSubscriptionPlan(.none)
+        
+        // AppsFlyer is now started in AppDelegate (background initialization)
     }
 
     private func resetAppStateForTesting() {
@@ -48,42 +51,27 @@ struct SnatchShotApp: App {
         print("🔄 App state reset for testing - will show full flow")
     }
 
-    private static func checkDatabaseConnection() async {
-        do {
-            let isHealthy = try await DatabaseService.shared.healthCheck()
-            if isHealthy {
-                print("🗄️ Database connection: ✅ Healthy")
-            } else {
-                print("🗄️ Database connection: ❌ Unhealthy")
-            }
-        } catch {
-            print("🗄️ Database connection: ❌ Failed to check - \(error.localizedDescription)")
-            print("ℹ️ Make sure your database server is running on http://13.221.107.42:4000")
-        }
-    }
 
     var body: some Scene {
         WindowGroup {
-            // Always show full flow for testing (onboarding -> signup -> personalization -> verification -> camera) - Slay AI
-            // Remove the .onAppear modifiers in OnboardingView and SignUpView for production
             ZStack {
                 if !hasCompletedOnboarding {
                     OnboardingView()
                         .environmentObject(cameraService)
                         .environmentObject(webSocketService)
-                } else if !hasCompletedSignUp {
+                } else if !hasCompletedSignUp && !isGuestMode {
                     SignUpView()
                         .environmentObject(cameraService)
                         .environmentObject(webSocketService)
-                } else if !hasCompletedPersonalization {
+                } else if !hasCompletedPersonalization && !isGuestMode {
                     PersonalizationView()
                         .environmentObject(cameraService)
                         .environmentObject(webSocketService)
-                } else if !hasCompletedFacePhoto {
+                } else if !hasCompletedFacePhoto && !isGuestMode {
                     FacePhotoView()
                         .environmentObject(cameraService)
                         .environmentObject(webSocketService)
-                } else if !hasCompletedUserVerification {
+                } else if !hasCompletedUserVerification && !isGuestMode {
                     FullBodyPhotoView()
                         .environmentObject(cameraService)
                         .environmentObject(webSocketService)
@@ -91,6 +79,15 @@ struct SnatchShotApp: App {
                     CameraView()
                         .environmentObject(cameraService)
                         .environmentObject(webSocketService)
+                }
+            }
+            .onAppear {
+                // Handle scene lifecycle for Superwall
+                NotificationCenter.default.addObserver(forName: UIScene.willConnectNotification, object: nil, queue: .main) { _ in
+                    SuperwallManager.shared.updateSuperwallAttributes()
+                }
+                NotificationCenter.default.addObserver(forName: UIScene.didDisconnectNotification, object: nil, queue: .main) { _ in
+                    SuperwallManager.shared.updateSuperwallAttributes()
                 }
             }
             .task {

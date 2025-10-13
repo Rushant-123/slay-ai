@@ -141,26 +141,23 @@ struct OnboardingView: View {
                     
                     // Terms and Privacy links
                     HStack(spacing: 20) {
-                        Button("Terms of Use") {
-                            AnalyticsService.shared.trackSignupTermsLinkTapped()
-                            // Open terms
+                    Button("Terms of Use") {
+                        AnalyticsService.shared.trackSignupTermsLinkTapped()
+                        if let url = URL(string: "https://www.getslayai.com/terms-of-service") {
+                            UIApplication.shared.open(url)
                         }
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                    }
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
 
-                        Button("Restore Purchase") {
-                            // Track restore purchase attempt (though this is during onboarding)
-                            // Open restore purchase flow
+                    Button("Privacy Policy") {
+                        AnalyticsService.shared.trackSignupPrivacyLinkTapped()
+                        if let url = URL(string: "https://www.getslayai.com/privacy") {
+                            UIApplication.shared.open(url)
                         }
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-
-                        Button("Privacy Policy") {
-                            AnalyticsService.shared.trackSignupPrivacyLinkTapped()
-                            // Open privacy policy
-                        }
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                    }
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
                     }
                     .padding(.top, 8)
                 }

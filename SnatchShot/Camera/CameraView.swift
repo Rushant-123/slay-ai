@@ -3,6 +3,794 @@ import SwiftUI
 import AVFoundation
 import UIKit
 import Foundation
+import SuperwallKit
+
+// MARK: - Account Settings View
+struct AccountSettingsView: View {
+    @EnvironmentObject private var webSocketService: WebSocketService
+    let dismissAction: () -> Void
+
+    @State private var userEmail: String = UserDefaults.standard.string(forKey: "user_email") ?? "Not set"
+    @State private var userId: String = UserDefaults.standard.string(forKey: "database_user_id") ?? "Not set"
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color(red: 0.05, green: 0.05, blue: 0.1),
+                    Color(red: 0.08, green: 0.08, blue: 0.15),
+                    Color(red: 0.05, green: 0.05, blue: 0.1)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .edgesIgnoringSafeArea(.all)
+
+            VStack(spacing: 0) {
+                // Header
+                ZStack {
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.purple.opacity(0.1),
+                            Color.blue.opacity(0.1),
+                            Color.cyan.opacity(0.1)
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(height: 60)
+
+                    HStack {
+                        Button(action: dismissAction) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.white.opacity(0.1))
+                                    .frame(width: 36, height: 36)
+
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+
+                        Spacer()
+
+                        Text("Account Settings")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                }
+
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Profile Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Image(systemName: "person.circle.fill")
+                                    .foregroundColor(Color.blue.opacity(0.8))
+                                    .frame(width: 20)
+
+                                Text("Profile")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+
+                            VStack(spacing: 0) {
+                                // Email
+                                HStack {
+                                    Text("Email")
+                                        .foregroundColor(.white.opacity(0.8))
+                                        .font(.system(size: 14))
+                                    Spacer()
+                                    Text(userEmail)
+                                        .foregroundColor(.white)
+                                        .font(.system(size: 14))
+                                }
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+
+                                Divider()
+                                    .background(Color.white.opacity(0.1))
+
+                                // User ID
+                                HStack {
+                                    Text("User ID")
+                                        .foregroundColor(.white.opacity(0.8))
+                                        .font(.system(size: 14))
+                                    Spacer()
+                                    Text(userId)
+                                        .foregroundColor(.white.opacity(0.6))
+                                        .font(.system(size: 12))
+                                        .lineLimit(1)
+                                }
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                            }
+                            .background(Color.black.opacity(0.2))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            )
+                        }
+                        .padding(.horizontal, 20)
+
+                        // Subscription Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Image(systemName: "crown.fill")
+                                    .foregroundColor(Color.purple.opacity(0.8))
+                                    .frame(width: 20)
+
+                                Text("Subscription")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+
+                            VStack(spacing: 0) {
+                                // Current Plan
+                                HStack {
+                                    Text("Current Plan")
+                                        .foregroundColor(.white.opacity(0.8))
+                                        .font(.system(size: 14))
+                                    Spacer()
+                                    Text(webSocketService.userPlan?.capitalized ?? "Free")
+                                        .foregroundColor(.white)
+                                        .font(.system(size: 14))
+                                }
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+
+                                Divider()
+                                    .background(Color.white.opacity(0.1))
+
+                                // Usage
+                                HStack {
+                                    Text("Usage")
+                                        .foregroundColor(.white.opacity(0.8))
+                                        .font(.system(size: 14))
+                                    Spacer()
+                                    if let usage = webSocketService.currentUsage,
+                                       let limit = webSocketService.usageLimit {
+                                        Text("\(usage)/\(limit) photos")
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 14))
+                                    } else {
+                                        Text("Loading...")
+                                            .foregroundColor(.white.opacity(0.6))
+                                            .font(.system(size: 14))
+                                    }
+                                }
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+
+                                Divider()
+                                    .background(Color.white.opacity(0.1))
+
+                                // Manage Subscription
+                                Button(action: {
+                                    // Open subscription management
+                                    if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }) {
+                                    HStack {
+                                        Text("Manage Subscription")
+                                            .foregroundColor(Color.blue)
+                                            .font(.system(size: 14))
+                                        Spacer()
+                                        Image(systemName: "arrow.up.right")
+                                            .foregroundColor(Color.blue.opacity(0.8))
+                                            .font(.system(size: 12))
+                                    }
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 16)
+                                }
+                            }
+                            .background(Color.black.opacity(0.2))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            )
+                        }
+                        .padding(.horizontal, 20)
+
+                        Spacer(minLength: 40)
+                    }
+                    .padding(.top, 24)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Settings Content View
+struct SettingsContentView: View {
+    @EnvironmentObject private var webSocketService: WebSocketService
+    let dismissAction: () -> Void
+
+    @State private var showDeleteConfirmation = false
+    @State private var showAccountSettings = false
+
+    // Computed properties to help with complex expressions
+    private var planBadgeBackground: Color {
+        webSocketService.userPlan?.lowercased() == "trial" ?
+        Color.orange.opacity(0.2) :
+        Color.purple.opacity(0.2)
+    }
+
+    private var planBadgeTextColor: Color {
+        webSocketService.userPlan?.lowercased() == "trial" ?
+        Color.orange : Color.purple
+    }
+
+    private var planBadgeText: String {
+        webSocketService.userPlan?.uppercased() ?? "FREE"
+    }
+
+    private var shouldShowProgressBar: Bool {
+        guard let usage = webSocketService.currentUsage,
+              let limit = webSocketService.usageLimit else {
+            return false
+        }
+        return limit > 0
+    }
+
+    private var isUsageAtLimit: Bool {
+        guard let usage = webSocketService.currentUsage,
+              let limit = webSocketService.usageLimit else {
+            return false
+        }
+        return usage >= limit
+    }
+
+    private var progressBarWidth: CGFloat {
+        guard let usage = webSocketService.currentUsage,
+              let limit = webSocketService.usageLimit,
+              limit > 0 else {
+            return 0
+        }
+        return CGFloat(usage) / CGFloat(limit)
+    }
+
+    // Extracted subviews to reduce complexity
+    private var backgroundGradient: some View {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                Color(red: 0.05, green: 0.05, blue: 0.1),
+                Color(red: 0.08, green: 0.08, blue: 0.15),
+                Color(red: 0.05, green: 0.05, blue: 0.1)
+            ]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .edgesIgnoringSafeArea(.all)
+    }
+
+    private var headerBackground: some View {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                Color.purple.opacity(0.1),
+                Color.blue.opacity(0.1),
+                Color.cyan.opacity(0.1)
+            ]),
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+        .frame(height: 60)
+    }
+
+    private var headerView: some View {
+        ZStack {
+            headerBackground
+
+            HStack {
+                Button(action: dismissAction) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.1))
+                            .frame(width: 36, height: 36)
+
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                }
+
+                Spacer()
+
+                Text("Settings")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.white)
+
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+
+    private var planCardBorder: some View {
+        RoundedRectangle(cornerRadius: 16)
+            .stroke(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.purple.opacity(0.3),
+                        Color.blue.opacity(0.3),
+                        Color.cyan.opacity(0.3)
+                    ]),
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ),
+                lineWidth: 1
+            )
+    }
+
+    private var usageText: String {
+        if let usage = webSocketService.currentUsage,
+           let limit = webSocketService.usageLimit {
+            let remaining = max(0, limit - usage)
+            return "\(remaining) pose suggestions left"
+        } else {
+            return "Loading usage data..."
+        }
+    }
+
+    private var planBadge: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(planBadgeBackground)
+                .frame(width: 60, height: 24)
+
+            Text(planBadgeText)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(planBadgeTextColor)
+        }
+    }
+
+    private var progressBarView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.white.opacity(0.2))
+                        .frame(height: 6)
+
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(progressBarFill)
+                        .frame(width: geo.size.width * progressBarWidth, height: 6)
+                }
+            }
+            .frame(height: 6)
+        }
+    }
+
+    private var progressBarFill: AnyShapeStyle {
+        if isUsageAtLimit {
+            return AnyShapeStyle(Color.red.opacity(0.8))
+        } else {
+            return AnyShapeStyle(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.purple.opacity(0.8),
+                        Color.blue.opacity(0.8),
+                        Color.cyan.opacity(0.8)
+                    ]),
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+        }
+    }
+
+    private var upgradeButtonText: String {
+        let subscriptionState = SubscriptionManager.shared.state
+
+        if subscriptionState.isPaidSubscriber, let currentPlan = subscriptionState.currentPlan {
+            // User has active paid subscription
+            switch currentPlan {
+            case .weekly:
+                return "Upgrade Plan"
+            case .quarterly:
+                return "Upgrade to Yearly"
+            case .yearly, .yearlynt:
+                return "Premium Features"
+            }
+        } else if subscriptionState.isTrialActive {
+            // User is in trial
+            return "Start Pro Plan"
+        } else {
+            // User is free
+            return "Upgrade to Pro"
+        }
+    }
+
+    private var upgradeButton: some View {
+        Button(action: {
+            // Determine campaign based on current plan
+            let subscriptionState = SubscriptionManager.shared.state
+
+            let campaignEvent: String
+            if subscriptionState.isPaidSubscriber, let currentPlan = subscriptionState.currentPlan {
+                // User has active paid subscription
+                switch currentPlan {
+                case .weekly:
+                    campaignEvent = "normal_upgrade_weekly"
+                case .quarterly:
+                    campaignEvent = "normal_upgrade_quarterly"
+                case .yearly, .yearlynt:
+                    campaignEvent = "normal_upgrade_yearly"
+                }
+            } else if subscriptionState.isTrialActive {
+                // User is in trial
+                campaignEvent = "trial_ended"
+            } else {
+                // User is free (no subscription, trial expired, etc.)
+                campaignEvent = "trial_ended"
+            }
+
+            // Trigger Superwall campaign
+            Superwall.shared.register(placement: campaignEvent)
+            print("🚀 Triggered Superwall campaign: \(campaignEvent) for plan: \(subscriptionState.currentPlan?.rawValue ?? "free")")
+        }) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.purple.opacity(0.8),
+                                Color.blue.opacity(0.8),
+                                Color.cyan.opacity(0.8)
+                            ]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 50)
+
+                HStack {
+                    Image(systemName: "sparkles")
+                        .foregroundColor(.white)
+                        .font(.system(size: 16))
+
+                    Text(upgradeButtonText)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+
+                    Spacer()
+
+                    Image(systemName: "arrow.right")
+                        .foregroundColor(.white.opacity(0.8))
+                        .font(.system(size: 14))
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+        .shadow(color: Color.purple.opacity(0.3), radius: 8, x: 0, y: 4)
+    }
+
+    var body: some View {
+        ZStack {
+            backgroundGradient
+
+            VStack(spacing: 0) {
+                headerView
+
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Plan & Usage Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Image(systemName: "crown.fill")
+                                    .foregroundColor(Color.purple.opacity(0.8))
+                                    .frame(width: 20)
+
+                                Text("Plan & Usage")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+
+                            // Plan Card
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color.black.opacity(0.3))
+                                    .overlay(planCardBorder)
+
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(webSocketService.userPlan?.capitalized ?? "Free")
+                                                .font(.system(size: 18, weight: .bold))
+                                                .foregroundColor(.white)
+
+                                            Text(usageText)
+                                                .font(.system(size: 14))
+                                                .foregroundColor(.white.opacity(0.7))
+                                        }
+
+                                        Spacer()
+
+                                        planBadge
+                                    }
+
+                                    // Usage Progress Bar
+                                    if shouldShowProgressBar {
+                                        progressBarView
+                                    }
+                                }
+                                .padding(16)
+                            }
+
+                            upgradeButton
+                        }
+                        .padding(.horizontal, 20)
+
+                        // Account Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Image(systemName: "person.circle.fill")
+                                    .foregroundColor(Color.blue.opacity(0.8))
+                                    .frame(width: 20)
+
+                                Text("Account")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+
+                            // Account Options
+                            VStack(spacing: 0) {
+                                // Account Settings
+                                Button(action: {
+                                    showAccountSettings = true
+                                }) {
+                                    HStack {
+                                        Image(systemName: "gear")
+                                            .foregroundColor(.white.opacity(0.8))
+                                            .frame(width: 20)
+
+                                        Text("Account Settings")
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 16))
+
+                                        Spacer()
+
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.white.opacity(0.4))
+                                            .font(.system(size: 14))
+                                    }
+                                    .padding(.vertical, 16)
+                                    .padding(.horizontal, 16)
+                                }
+
+                                Divider()
+                                    .background(Color.white.opacity(0.1))
+
+                                // Terms & Conditions
+                                Button(action: {
+                                    if let url = URL(string: "https://www.getslayai.com/terms-of-service") {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "doc.text")
+                                            .foregroundColor(.white.opacity(0.8))
+                                            .frame(width: 20)
+
+                                        Text("Terms & Conditions")
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 16))
+
+                                        Spacer()
+
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.white.opacity(0.4))
+                                            .font(.system(size: 14))
+                                    }
+                                    .padding(.vertical, 16)
+                                    .padding(.horizontal, 16)
+                                }
+
+                                Divider()
+                                    .background(Color.white.opacity(0.1))
+
+                                // Privacy Policy
+                                Button(action: {
+                                    if let url = URL(string: "https://www.getslayai.com/privacy") {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "hand.raised")
+                                            .foregroundColor(.white.opacity(0.8))
+                                            .frame(width: 20)
+
+                                        Text("Privacy Policy")
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 16))
+
+                                        Spacer()
+
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.white.opacity(0.4))
+                                            .font(.system(size: 14))
+                                    }
+                                    .padding(.vertical, 16)
+                                    .padding(.horizontal, 16)
+                                }
+
+                                Divider()
+                                    .background(Color.white.opacity(0.1))
+
+                                // Account Deletion
+                                Button(action: {
+                                    showDeleteConfirmation = true
+                                }) {
+                                    HStack {
+                                        Image(systemName: "trash")
+                                            .foregroundColor(.red.opacity(0.8))
+                                            .frame(width: 20)
+
+                                        Text("Delete Account")
+                                            .foregroundColor(.red)
+                                            .font(.system(size: 16))
+
+                                        Spacer()
+
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.white.opacity(0.4))
+                                            .font(.system(size: 14))
+                                    }
+                                    .padding(.vertical, 16)
+                                    .padding(.horizontal, 16)
+                                }
+
+                                Divider()
+                                    .background(Color.white.opacity(0.1))
+
+                                // Contact Us
+                                Button(action: {
+                                    if let url = URL(string: "mailto:support@getslayai.com?subject=SnatchShot Support") {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "envelope")
+                                            .foregroundColor(.white.opacity(0.8))
+                                            .frame(width: 20)
+
+                                        Text("Contact Us")
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 16))
+
+                                        Spacer()
+
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.white.opacity(0.4))
+                                            .font(.system(size: 14))
+                                    }
+                                    .padding(.vertical, 16)
+                                    .padding(.horizontal, 16)
+                                }
+
+                                Divider()
+                                    .background(Color.white.opacity(0.1))
+
+                                // Logout
+                                Button(action: {
+                                    // Clear user data
+                                    UserDefaults.standard.removeObject(forKey: "database_user_id")
+                                    UserDefaults.standard.removeObject(forKey: "apple_user_id")
+                                    UserDefaults.standard.removeObject(forKey: "user_email")
+
+                                    // Reset app state to onboarding
+                                    UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+                                    UserDefaults.standard.set(false, forKey: "hasCompletedSignUp")
+                                    UserDefaults.standard.set(false, forKey: "hasCompletedPersonalization")
+                                    UserDefaults.standard.set(false, forKey: "hasCompletedFacePhoto")
+                                    UserDefaults.standard.set(false, forKey: "hasCompletedUserVerification")
+                                    UserDefaults.standard.set(false, forKey: "isGuestMode")
+
+                                    // Reset subscription state
+                                    SubscriptionManager.shared.reset()
+
+                                    // Disconnect WebSocket
+                                    webSocketService.disconnect()
+
+                                    // Close settings
+                                    dismissAction()
+                                }) {
+                                    HStack {
+                                        Image(systemName: "arrow.right.square")
+                                            .foregroundColor(.red.opacity(0.8))
+                                            .frame(width: 20)
+
+                                        Text("Logout")
+                                            .foregroundColor(.red)
+                                            .font(.system(size: 16))
+
+                                        Spacer()
+
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.white.opacity(0.4))
+                                            .font(.system(size: 14))
+                                    }
+                                    .padding(.vertical, 16)
+                                    .padding(.horizontal, 16)
+                                }
+                            }
+                            .background(Color.black.opacity(0.2))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            )
+                        }
+                        .padding(.horizontal, 20)
+
+                        Spacer(minLength: 40)
+                    }
+                    .padding(.top, 24)
+                }
+            }
+        }
+        .alert("Delete Account", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                // Perform account deletion
+                Task {
+                    await performAccountDeletion()
+                }
+            }
+        } message: {
+            Text("This will permanently delete your account and all associated data. This action cannot be undone.")
+        }
+        .sheet(isPresented: $showAccountSettings) {
+            AccountSettingsView {
+                showAccountSettings = false
+            }
+            .environmentObject(webSocketService)
+        }
+    }
+
+    private func performAccountDeletion() async {
+        // Get the user ID
+        guard let userId = UserDefaults.standard.string(forKey: "database_user_id") else {
+            print("❌ No user ID found for deletion")
+            return
+        }
+
+        do {
+            // Call the backend API to delete the account
+            try await DatabaseService.shared.deleteAccount(userId: userId)
+            print("✅ Account deleted on backend: \(userId)")
+
+            // Clear local data and logout
+            UserDefaults.standard.removeObject(forKey: "database_user_id")
+            UserDefaults.standard.removeObject(forKey: "apple_user_id")
+            UserDefaults.standard.removeObject(forKey: "user_email")
+
+            // Reset app state
+            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+            UserDefaults.standard.set(false, forKey: "hasCompletedSignUp")
+            UserDefaults.standard.set(false, forKey: "hasCompletedPersonalization")
+            UserDefaults.standard.set(false, forKey: "hasCompletedFacePhoto")
+            UserDefaults.standard.set(false, forKey: "hasCompletedUserVerification")
+            UserDefaults.standard.set(false, forKey: "isGuestMode")
+
+            // Disconnect WebSocket
+            webSocketService.disconnect()
+
+            // Close settings
+            dismissAction()
+        } catch {
+            print("❌ Failed to delete account: \(error.localizedDescription)")
+            // TODO: Show error alert to user
+        }
+    }
+}
 
 // MARK: - Button Position Tracking
 struct ButtonPositionKey: PreferenceKey {
@@ -23,7 +811,9 @@ struct CameraView: View {
     // MARK: - State Management
     @StateObject private var viewModel = CameraViewModel()
     @State private var buttonPositions: [String: CGRect] = [:]
-    
+    @State private var showSettings = false
+    @State private var logoScale: CGFloat = 1.0
+
     var body: some View {
         ZStack {
             if camera.isConfigured {
@@ -33,6 +823,12 @@ struct CameraView: View {
             }
         }
         .overlay(overlayContent)
+        .sheet(isPresented: $showSettings) {
+            SettingsContentView {
+                showSettings = false
+            }
+            .environmentObject(webSocketService)
+        }
         .overlay(
             // Simple horizontal panels below buttons
             VStack {
@@ -158,13 +954,58 @@ extension CameraView {
                     VStack {
                         ZStack {
                             Color(red: 0.075, green: 0.082, blue: 0.102).opacity(0.7) // Onboarding background color with reduced opacity
-                            // Logo in top-right corner
-                            Image("Logo") // Your logo asset name
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 110, height: 110)
-                                .clipShape(Circle())
-                                .offset(x: 130, y: 30) // Adjusted positioning for larger logo
+                            // Logo in top-right corner - now tappable for settings
+                            Button(action: {
+                                // Scale animation feedback
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                    logoScale = 0.9
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                        logoScale = 1.0
+                                    }
+                                }
+
+                                // Show settings after brief delay
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        showSettings = true
+                                    }
+                                }
+                            }) {
+                                ZStack {
+                                    // Subtle glow effect when usage is low
+                                    if let usage = webSocketService.currentUsage,
+                                       let limit = webSocketService.usageLimit,
+                                       limit > 0 && usage >= Int(Double(limit) * 0.8) {
+                                        Circle()
+                                            .fill(Color.purple.opacity(0.3))
+                                            .frame(width: 120, height: 120)
+                                            .blur(radius: 10)
+                                    }
+
+                                    Image("Logo") // Your logo asset name
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 110, height: 110)
+                                        .scaleEffect(logoScale)
+                                        .clipShape(Circle())
+
+                                    // Usage badge - shows remaining suggestions
+                                    if let usage = webSocketService.currentUsage, let limit = webSocketService.usageLimit, limit > 0 {
+                                        Text("\(usage)/\(limit)")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(usage >= limit ? Color.red.opacity(0.9) : Color.purple.opacity(0.8))
+                                            .clipShape(Capsule())
+                                            .offset(x: 35, y: -35)
+                                            .scaleEffect(logoScale)
+                                    }
+                                }
+                            }
+                            .offset(x: 130, y: 30) // Adjusted positioning for larger logo
                         }
                         .frame(height: 100) // Reduced height
                         .edgesIgnoringSafeArea(.top)

@@ -8,7 +8,12 @@
 import SwiftUI
 import PhotosUI
 
+// Database service for API calls
+private let facePhotoDatabaseService = DatabaseService.shared
+
 struct FacePhotoView: View {
+    @EnvironmentObject var webSocketService: WebSocketService
+
     @AppStorage("hasCompletedFacePhoto") private var hasCompletedFacePhoto = false
     @AppStorage("hasCompletedPersonalization") private var hasCompletedPersonalization = false
 
@@ -34,9 +39,9 @@ struct FacePhotoView: View {
 
     var body: some View {
         ZStack {
-            // Dark background
-            Color(red: 0.075, green: 0.082, blue: 0.102)
-                .edgesIgnoringSafeArea(.all)
+                // Dark background
+                Color(red: 0.075, green: 0.082, blue: 0.102)
+                    .edgesIgnoringSafeArea(.all)
 
             VStack(spacing: 0) {
                 // Back button
@@ -319,7 +324,7 @@ struct FacePhotoView: View {
                 if let data = try? await item.loadTransferable(type: Data.self),
                    let image = UIImage(data: data) {
                     facePhoto = image
-                    // Start verification process
+                        // Start verification process
                     await verifyFacePhoto(image)
                 }
             }
@@ -343,12 +348,10 @@ struct FacePhotoView: View {
 
         do {
             print("🔍 Starting face photo verification...")
-            let (reference, genderResult) = try await DatabaseService.shared.uploadReferenceImage(
+            let (reference, genderResult) = try await facePhotoDatabaseService.uploadReferenceImage(
                 image: image,
                 referenceType: "face",
-                userId: userId,
-                tags: [],
-                categories: []
+                userId: userId
             )
 
             // Check if verification was successful
@@ -369,8 +372,15 @@ struct FacePhotoView: View {
             verificationError = "Verification failed: \(message)"
             print("❌ Face verification server error: \(message)")
         } catch {
-            verificationError = "Verification failed: \(error.localizedDescription)"
-            print("❌ Face verification error: \(error)")
+            // Handle NSError from DatabaseService (which includes backend error messages)
+            if let nsError = error as? NSError,
+               let errorMessage = nsError.userInfo[NSLocalizedDescriptionKey] as? String {
+                verificationError = "Verification failed: \(errorMessage)"
+                print("❌ Face verification backend error: \(errorMessage)")
+            } else {
+                verificationError = "Verification failed: \(error.localizedDescription)"
+                print("❌ Face verification error: \(error)")
+            }
         }
 
         isVerifying = false
@@ -442,8 +452,8 @@ struct FaceVerificationPopup: View {
             .background(Color(red: 0.075, green: 0.082, blue: 0.102))
             .cornerRadius(24)
             .padding(.horizontal, 20)
+            }
         }
-    }
 
     private var iconName: String {
         switch result.decision {

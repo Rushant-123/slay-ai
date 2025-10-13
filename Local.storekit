@@ -125,7 +125,7 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.snatchshot.pro.weekly",
+          "productID" : "com.rushant.snatchshotapp.pro.weekly",
           "recurringSubscriptionPeriod" : "P1W",
           "referenceName" : "testing-weekly",
           "subscriptionGroupID" : "98174242",
@@ -153,7 +153,7 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.snatchshot.pro.quarterly",
+          "productID" : "com.rushant.snatchshotapp.pro.quaterly",
           "recurringSubscriptionPeriod" : "P3M",
           "referenceName" : "testing-quarterly",
           "subscriptionGroupID" : "98174242",
@@ -181,7 +181,7 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.snatchshot.pro.yearlynt",
+          "productID" : "com.rushant.snatchshotapp.pro.yearlynt",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Testing-noTrial",
           "subscriptionGroupID" : "98174242",

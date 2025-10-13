@@ -111,6 +111,15 @@ struct UserLoginResponse: Codable {
     let token: String
 }
 
+struct UserIdLoginRequest: Codable {
+    let userId: String
+}
+
+struct UserOnlyLoginResponse: Codable {
+    let message: String?
+    let user: DatabaseUser
+}
+
 // MARK: - Photo Models
 
 struct DatabasePhoto: Codable {
@@ -375,6 +384,52 @@ class DatabaseService {
         let loginResponse = try JSONDecoder().decode(UserLoginResponse.self, from: data)
         print("✅ User logged in successfully: \(loginResponse.user.userId)")
         return (loginResponse.user, loginResponse.token)
+    }
+
+    /// Login using only a backend-recognized userId (temporary, no-JWT fallback)
+    /// Expects backend to accept `{ userId: "..." }` at POST /users/login and return a user object
+    func loginByUserId(userId: String) async throws -> DatabaseUser {
+        let endpoint = "\(baseURL)/users/login"
+        guard let url = URL(string: endpoint) else {
+            throw DatabaseError.invalidURL
+        }
+
+        let requestData = UserIdLoginRequest(userId: userId)
+        let jsonData = try JSONEncoder().encode(requestData)
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = jsonData
+
+        print("🔐 Database UserId Login Request:")
+        print("URL: \(url)")
+        print("UserId: \(userId)")
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw DatabaseError.invalidResponse
+        }
+
+        if !(200...299).contains(httpResponse.statusCode) {
+            if let errorMessage = String(data: data, encoding: .utf8) {
+                print("❌ Database UserId Login Error: \(errorMessage)")
+                throw DatabaseError.serverError("HTTP \(httpResponse.statusCode): \(errorMessage)")
+            } else {
+                throw DatabaseError.serverError("HTTP \(httpResponse.statusCode)")
+            }
+        }
+
+        do {
+            let loginResponse = try JSONDecoder().decode(UserOnlyLoginResponse.self, from: data)
+            print("✅ UserId login successful: \(loginResponse.user.userId)")
+            return loginResponse.user
+        } catch {
+            print("❌ Failed to decode userId login response: \(error)")
+            print("Raw response: \(String(data: data, encoding: .utf8) ?? "Unable to decode")")
+            throw DatabaseError.decodingError(error.localizedDescription)
+        }
     }
 
     // MARK: - Photo Management
@@ -871,6 +926,39 @@ class DatabaseService {
     func checkTrialUsageLimit(for userId: String) async throws -> Bool {
         let usage = try await getTrialUsage(for: userId)
         return usage < 5 // 5 photo limit
+    }
+
+    func deleteAccount(userId: String) async throws {
+        let endpoint = "\(baseURL)/users/\(userId)"
+        guard let url = URL(string: endpoint) else {
+            throw DatabaseError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+
+        print("📤 Database Delete Account Request:")
+        print("URL: \(url)")
+        print("User ID: \(userId)")
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw DatabaseError.invalidResponse
+        }
+
+        print("📥 Database Delete Account Response Status: \(httpResponse.statusCode)")
+
+        if !(200...299).contains(httpResponse.statusCode) {
+            if let errorMessage = String(data: data, encoding: .utf8) {
+                print("❌ Database Delete Account Error: \(errorMessage)")
+                throw DatabaseError.serverError("HTTP \(httpResponse.statusCode): \(errorMessage)")
+            } else {
+                throw DatabaseError.serverError("HTTP \(httpResponse.statusCode)")
+            }
+        }
+
+        print("✅ Account deleted successfully: \(userId)")
     }
 
     func resetTrialUsage(for userId: String) async throws {

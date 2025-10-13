@@ -220,6 +220,9 @@ class CameraService: NSObject, ObservableObject {
     @Published var error: String?
     @Published var spotSuggestion: String?
 
+    // MARK: - Dependencies
+    weak var webSocketService: WebSocketService?
+
     // Camera Controls
     @Published var aspectRatio: AspectRatio = .full
     @Published var zoomFactor: CGFloat = 1.0
@@ -1555,7 +1558,7 @@ class CameraService: NSObject, ObservableObject {
         ImageCacheService.shared.cacheImage(image, id: photoId, type: .original)
 
         // Verify the image was cached
-        if let cachedImage = ImageCacheService.shared.getCachedImage(id: photoId) {
+        if ImageCacheService.shared.getCachedImage(id: photoId) != nil {
             print("✅ Original photo successfully cached: \(photoId)")
         } else {
             print("❌ Failed to cache original photo: \(photoId)")
@@ -1624,16 +1627,21 @@ class CameraService: NSObject, ObservableObject {
                 return
             }
 
-            _ = try await DatabaseService.shared.uploadPhoto(
+            guard let webSocketService = webSocketService else {
+                print("❌ Cannot upload photo: WebSocketService not available")
+                return
+            }
+
+            _ = try await webSocketService.uploadPhotoToBackend(
                 image: image,
                 userId: userId,
                 isGenerated: false,
                 metadata: metadata
             )
 
-            print("✅ Photo uploaded to database and cached successfully")
+            print("✅ Photo uploaded to backend and cached successfully")
         } catch {
-            print("❌ Failed to upload photo to database: \(error.localizedDescription)")
+            print("❌ Failed to upload photo to backend: \(error.localizedDescription)")
             print("ℹ️ Photo is cached locally and will be uploaded when connection is restored")
         }
     }

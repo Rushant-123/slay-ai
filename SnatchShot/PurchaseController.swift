@@ -11,31 +11,29 @@ import AppsFlyerLib
 import Mixpanel
 
 /// Purchase controller that forwards Superwall events to AppsFlyer and Mixpanel
-class PurchaseController: SuperwallKit.PurchaseController {
-    @MainActor
-    func purchase(product: StoreProduct) async -> PurchaseResult {
+class PurchaseController: NSObject, SuperwallKit.PurchaseController {
+    func purchase(product: StoreProduct) async -> SuperwallKit.PurchaseResult {
         print("🛒 Processing purchase for product: \(product.productIdentifier)")
 
         // TODO: Implement actual StoreKit purchase flow
         // For now, simulate a successful purchase
         do {
             try await Task.sleep(nanoseconds: 1_000_000_000) // Simulate network delay
-            return .purchased
+            return SuperwallKit.PurchaseResult.purchased
         } catch {
-            return .failed(error)
+            return SuperwallKit.PurchaseResult.failed(error)
         }
     }
 
-    @MainActor
-    func restorePurchases() async -> RestorationResult {
+    func restorePurchases() async -> SuperwallKit.RestorationResult {
         print("🔄 Restoring purchases")
         
         // TODO: Implement actual StoreKit restore logic
         do {
             try await Task.sleep(nanoseconds: 1_000_000_000) // Simulate network delay
-            return .restored
+            return SuperwallKit.RestorationResult.restored
         } catch {
-            return .failed(error)
+            return SuperwallKit.RestorationResult.failed(error)
         }
     }
 
@@ -45,8 +43,8 @@ class PurchaseController: SuperwallKit.PurchaseController {
         // Forward purchase events to AppsFlyer and Mixpanel
         switch result {
         case .purchased:
-            // Update Superwall subscription status
-            Superwall.shared.subscriptionStatus = .active(Set())
+            // Update subscription manager with purchase
+            SubscriptionManager.shared.handlePurchase(productId: product.productIdentifier)
 
             // AppsFlyer purchase tracking
             AppsFlyerLib.shared().logEvent("af_purchase", withValues: [
@@ -100,8 +98,8 @@ class PurchaseController: SuperwallKit.PurchaseController {
     func didRestore(result: SuperwallKit.RestorationResult) {
         switch result {
         case .restored:
-            // Update Superwall subscription status
-            Superwall.shared.subscriptionStatus = .active(Set())
+            // Mark user as paid subscriber (product details will come from backend)
+            SubscriptionManager.shared.state.isPaidSubscriber = true
 
             // Update user properties for restored subscription
             Mixpanel.mainInstance().people.set(properties: [

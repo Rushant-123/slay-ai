@@ -9,7 +9,13 @@ import SwiftUI
 import PhotosUI
 import SuperwallKit
 
+// Database service for API calls
+let fullBodyDatabaseService = DatabaseService.shared
+
 struct FullBodyPhotoView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var webSocketService: WebSocketService
+
     @AppStorage("hasCompletedUserVerification") private var hasCompletedUserVerification = false
     @AppStorage("hasCompletedFacePhoto") private var hasCompletedFacePhoto = false
 
@@ -24,13 +30,14 @@ struct FullBodyPhotoView: View {
     @State private var uploadSuccess = false
     @State private var showSuccessPopup = false
     @State private var uploadError: String? = nil
+    @State private var paywallMessage: String? = nil
 
 
     var body: some View {
         ZStack {
-            // Dark background
-            Color(red: 0.075, green: 0.082, blue: 0.102)
-                .edgesIgnoringSafeArea(.all)
+                // Dark background
+                Color(red: 0.075, green: 0.082, blue: 0.102)
+                    .edgesIgnoringSafeArea(.all)
 
             VStack(spacing: 0) {
                 // Back button
@@ -147,27 +154,88 @@ struct FullBodyPhotoView: View {
 
                 Spacer()
 
+                // Paywall message (if any)
+                if let message = paywallMessage {
+                    VStack(spacing: 12) {
+                        Text(message)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.orange)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(Color.orange.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                        // Retry button for errors
+                        if message.contains("issue") || message.contains("error") {
+                            Button(action: {
+                                paywallMessage = nil // Clear message
+                                // Trigger paywall again - user can try completing onboarding
+                                if uploadSuccess {
+                                    // Determine which paywall to show based on subscription state
+                                    let placement = SubscriptionManager.shared.getPaywallPlacement()
+                                    let paywallType = SubscriptionManager.shared.shouldShowPaywall()
+                                    let config = SubscriptionManager.shared.getPaywallConfig(for: paywallType)
+
+                                    Superwall.shared.register(placement: placement) {
+                                        // Feature closure runs only when user has access
+                                        DispatchQueue.main.async {
+                                            print("✅ User has access - completing verification")
+                                            hasCompletedUserVerification = true
+                                            dismiss()
+                                        }
+                                    }
+                                } else {
+                                    // Upload failed, show upload error
+                                    uploadError = "Please upload a photo first"
+                                }
+                            }) {
+                                Text("Try Again")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(Color.blue.opacity(0.8))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+
                 // Bottom buttons
                 VStack(spacing: 16) {
                     Button(action: {
                         // Only complete verification if photo is uploaded successfully
                         if uploadSuccess {
-                            // Show onboarding paywall (yearly plan selection)
-                            Superwall.shared.register(placement: "onboarding")
-                            print("💰 Superwall register called with placement: onboarding")
-                            // Complete verification - paywall shows but doesn't block the flow
-                            hasCompletedUserVerification = true
+                            // Determine which paywall to show based on subscription state
+                            let placement = SubscriptionManager.shared.getPaywallPlacement()
+                            let paywallType = SubscriptionManager.shared.shouldShowPaywall()
+                            let config = SubscriptionManager.shared.getPaywallConfig(for: paywallType)
+
+                            // Show appropriate paywall - user must select plan to proceed
+                            Superwall.shared.register(placement: placement) {
+                                // Feature closure runs only when user has access
+                                DispatchQueue.main.async {
+                                    print("💰 Onboarding paywall - user has access")
+                                    hasCompletedUserVerification = true
+                                    dismiss()
+                                }
+                            }
                         }
                     }) {
-                        HStack {
+                        ZStack {
+                            Text(isUploading ? "Uploading..." :
+                                 uploadSuccess ? "Continue to Camera" :
+                                 fullBodyPhoto != nil ? "Uploading..." : "Take Full Body Photo First")
+                                .font(.system(size: 18, weight: .semibold))
+
                             if isUploading {
-                                Text("Uploading...")
-                                    .font(.system(size: 18, weight: .semibold))
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            } else {
-                                Text(uploadSuccess ? "Complete Verification" : fullBodyPhoto != nil ? "Uploading..." : "Take Full Body Photo First")
-                                    .font(.system(size: 18, weight: .semibold))
+                                HStack {
+                                    Spacer()
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                }
                             }
                         }
                         .foregroundColor(.white)
@@ -255,13 +323,22 @@ struct FullBodyPhotoView: View {
                         Button(action: {
                             showSuccessPopup = false
 
-                            // Show onboarding paywall (yearly plan selection)
-                            Superwall.shared.register(placement: "onboarding")
-                            print("💰 Superwall register called with placement: onboarding (success popup)")
-                            // Complete verification - paywall shows but doesn't block the flow
-                            hasCompletedUserVerification = true
+                            // Determine which paywall to show based on subscription state
+                            let placement = SubscriptionManager.shared.getPaywallPlacement()
+                            let paywallType = SubscriptionManager.shared.shouldShowPaywall()
+                            let config = SubscriptionManager.shared.getPaywallConfig(for: paywallType)
+
+                            // Show appropriate paywall - user must select plan to proceed
+                            Superwall.shared.register(placement: placement) {
+                                // Feature closure runs only when user has access
+                                DispatchQueue.main.async {
+                                    print("💰 Success popup paywall - user has access")
+                                    hasCompletedUserVerification = true
+                                    dismiss()
+                                }
+                            }
                         }) {
-                            Text("Start Creating Poses")
+                            Text("Continue to Camera")
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -337,14 +414,20 @@ struct FullBodyPhotoView: View {
         }
         .onChange(of: selectedItems) { oldItems, newItems in
             // Handle photo selection
-            guard let item = newItems.first else { return }
+            guard let item = newItems.first else {
+                selectedItems.removeAll()
+                showPhotoPicker = false
+                return
+            }
 
+            DispatchQueue.main.async {
             Task {
                 if let data = try? await item.loadTransferable(type: Data.self),
                    let image = UIImage(data: data) {
-                    fullBodyPhoto = image
-                    // Start upload process
-                    await uploadBodyPhoto(image)
+                        fullBodyPhoto = image
+                        // Start upload process
+                        await uploadBodyPhoto(image)
+                    }
                 }
             }
 
@@ -367,12 +450,10 @@ struct FullBodyPhotoView: View {
 
         do {
             print("📤 Starting body photo upload...")
-            let (reference, _) = try await DatabaseService.shared.uploadReferenceImage(
+            let (reference, _) = try await fullBodyDatabaseService.uploadReferenceImage(
                 image: image,
                 referenceType: "body",
-                userId: userId,
-                tags: [],
-                categories: []
+                userId: userId
             )
 
             print("✅ Body photo uploaded successfully: \(reference._id)")
@@ -383,14 +464,24 @@ struct FullBodyPhotoView: View {
             uploadError = "Upload failed: \(message)"
             print("❌ Body photo upload server error: \(message)")
         } catch {
-            uploadError = "Upload failed: \(error.localizedDescription)"
-            print("❌ Body photo upload error: \(error)")
+            // Handle NSError from DatabaseService (which includes backend error messages)
+            if let nsError = error as? NSError,
+               let errorMessage = nsError.userInfo[NSLocalizedDescriptionKey] as? String {
+                uploadError = "Upload failed: \(errorMessage)"
+                print("❌ Body photo upload backend error: \(errorMessage)")
+            } else {
+                uploadError = "Upload failed: \(error.localizedDescription)"
+                print("❌ Body photo upload error: \(error)")
+            }
         }
 
         isUploading = false
     }
 }
 
+#if DEBUG
 #Preview {
     FullBodyPhotoView()
+        .environmentObject(WebSocketService())
 }
+#endif

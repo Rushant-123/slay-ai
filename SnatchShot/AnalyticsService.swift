@@ -14,9 +14,11 @@ import UIKit
 class AnalyticsService {
     static let shared = AnalyticsService()
 
+    private var userPropertiesSetup = false
+
     private init() {
-        // Set up initial user properties
-        setupUserProperties()
+        // Defer user properties setup to ensure Mixpanel is initialized
+        // Will be called when first analytics event is tracked
     }
 
     // MARK: - Event Constants
@@ -166,6 +168,19 @@ class AnalyticsService {
     }
 
     func trackSignupCompleted() {
+        trackMixpanelEvent("signup_completed")
+    }
+
+    func trackSignupGuestModeTapped() {
+        trackMixpanelEvent("signup_guest_mode_tapped")
+    }
+
+    func trackGuestModeActivated() {
+        trackMixpanelEvent("guest_mode_activated")
+    }
+
+    // Legacy method - keeping for compatibility
+    func trackSignupCompleted_legacy() {
         trackMixpanelEvent(MixpanelEvent.signupCompleted)
     }
 
@@ -327,6 +342,12 @@ class AnalyticsService {
     // MARK: - Private Helper Methods
 
     private func trackMixpanelEvent(_ eventName: String, properties: [String: MixpanelType] = [:]) {
+        // Ensure user properties are set up on first event (after Mixpanel initialization)
+        if !userPropertiesSetup {
+            setupUserProperties()
+            userPropertiesSetup = true
+        }
+
         Mixpanel.mainInstance().track(event: eventName, properties: properties)
         print("📊 Mixpanel Event: \(eventName) - Properties: \(properties)")
     }

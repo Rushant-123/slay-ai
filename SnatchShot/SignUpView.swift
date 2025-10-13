@@ -144,6 +144,7 @@ struct SignUpOptionsView: View {
     @Binding var authError: String?
     @EnvironmentObject private var webSocketService: WebSocketService
     @AppStorage("hasCompletedSignUp") private var hasCompletedSignUp = false
+    @AppStorage("isGuestMode") private var isGuestMode = false
     
     var body: some View {
         VStack(spacing: 16) {
@@ -201,7 +202,31 @@ struct SignUpOptionsView: View {
             }
             .padding(.horizontal, 40)
             .disabled(isAuthenticating)
-            
+
+            // Guest/Demo Mode Button
+            Button(action: {
+                AnalyticsService.shared.trackSignupGuestModeTapped()
+                continueAsGuest()
+            }) {
+                HStack {
+                    Image(systemName: "eye")
+                        .font(.system(size: 20))
+                    Text("Demo Mode")
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                }
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .padding(.horizontal, 40)
+            .disabled(isAuthenticating)
+
             // Error Display
             if let error = authError {
                 Text(error)
@@ -367,8 +392,8 @@ struct SignUpOptionsView: View {
             // Identify user with Superwall
             Superwall.shared.identify(userId: dbUser.userId)
 
-            // Set subscription status for new user (should see paywalls)
-            Superwall.shared.subscriptionStatus = .inactive
+            // Initialize subscription state for new user (Superwall handles status automatically)
+            SubscriptionManager.shared.state = SubscriptionState() // Fresh state for new user
 
             // Complete sign up
             self.completeSignUp()
@@ -417,13 +442,39 @@ struct SignUpOptionsView: View {
         let (firstName, lastName) = parseFullName(appleCredential.fullName)
         
         // For NEW users, Apple Sign In may not provide email on subsequent logins
-        // But for first-time registration, we need email to create the account
-        guard let email = appleCredential.email else {
-            print("❌ Apple Sign In: Email not provided by Apple (required for new account)")
-            self.authError = "Apple Sign In requires email access for account creation. Please try again and grant email permission."
-            self.isAuthenticating = false
-            return
+        // Try backend login with Apple userId if email is missing (no-JWT fallback)
+        if appleCredential.email == nil {
+            print("ℹ️ Apple email not provided. Attempting backend login with Apple userId...")
+            do {
+                let user = try await DatabaseService.shared.loginByUserId(userId: appleUserId)
+                print("✅ Backend login by Apple userId succeeded: \(user.userId)")
+
+                // Store mapping and database user id
+                UserDefaults.standard.set(user.userId, forKey: "apple_user_\(appleUserId)")
+                UserDefaults.standard.set(user.userId, forKey: "database_user_id")
+
+                // Identify user with Superwall
+                Superwall.shared.identify(userId: user.userId)
+
+                // Proceed as logged-in
+                self.completeSignUp()
+                return
+            } catch DatabaseError.serverError(let message) {
+                // If not found or other server error, fall back to email-required path
+                print("❌ Backend login by Apple userId failed: \(message)")
+                self.authError = "Apple Sign In requires email for new account. Please enter your email to continue."
+                self.isAuthenticating = false
+                return
+            } catch {
+                print("❌ Unexpected error during backend login by Apple userId: \(error)")
+                self.authError = "Login failed. Please try again or enter your email to create an account."
+                self.isAuthenticating = false
+                return
+            }
         }
+        
+        // At this point, email is present (first-time or granted), continue with registration
+        guard let email = appleCredential.email else { return }
         
         // For Apple Sign In, we need to create a password since Apple doesn't provide one
         let password = DatabaseService.shared.generateOAuthPassword(for: appleUserId)
@@ -461,8 +512,8 @@ struct SignUpOptionsView: View {
             // Identify user with Superwall
             Superwall.shared.identify(userId: dbUser.userId)
 
-            // Set subscription status for new user (should see paywalls)
-            Superwall.shared.subscriptionStatus = .inactive
+            // Initialize subscription state for new user (Superwall handles status automatically)
+            SubscriptionManager.shared.state = SubscriptionState() // Fresh state for new user
 
             // Complete sign up
             self.completeSignUp()
@@ -528,19 +579,90 @@ struct SignUpOptionsView: View {
     
     private func completeSignUp() {
         isAuthenticating = false
-        
+
         // Track signup completed
         AnalyticsService.shared.trackSignupCompleted()
-        
+
         // 🌐 Establish WebSocket connection immediately after signup
         print("🌐 Establishing WebSocket connection after successful signup...")
         webSocketService.connect()
-        
+
         withAnimation {
             hasCompletedSignUp = true
         }
-        
+
         print("✅ Signup completed - WebSocket connection initiated for reduced latency")
+    }
+
+    private func continueAsGuest() {
+        // Track guest mode activation
+        AnalyticsService.shared.trackGuestModeActivated()
+
+        // Activate guest mode immediately for UI
+        isGuestMode = true
+
+        // Create temporary demo user account
+        Task {
+            await createDemoUser()
+        }
+    }
+
+    private func createDemoUser() async {
+        let demoEmail = "demo@snatchshot.app"
+        let demoUserId = "demo_user_\(UUID().uuidString.prefix(8))"
+        let demoPassword = DatabaseService.shared.generateOAuthPassword(for: demoUserId)
+
+        do {
+            print("📝 Creating demo user account...")
+
+            let demoUser = try await DatabaseService.shared.registerUser(
+                email: demoEmail,
+                password: demoPassword,
+                userId: demoUserId,
+                firstName: "Demo",
+                lastName: "User",
+                username: "demo_user"
+            )
+
+            print("✅ Demo user created successfully:")
+            print("- User ID: \(demoUser.userId)")
+            print("- Email: \(demoUser.email)")
+
+            // Store the real user ID
+            UserDefaults.standard.set(demoUser.userId, forKey: "database_user_id")
+
+            // Initialize user with Superwall (no entitlements)
+            Superwall.shared.identify(userId: demoUser.userId)
+            SuperwallManager.shared.updateSubscriptionPlan(.none)
+
+            // 🌐 Establish WebSocket connection for guest
+            print("🌐 Establishing WebSocket connection for guest mode...")
+            webSocketService.connect()
+
+            print("✅ Demo user setup complete - proceeding to camera")
+
+        } catch DatabaseError.serverError(let message) {
+            print("❌ Demo user creation failed: \(message)")
+
+            // Fallback: still proceed with dummy ID if user creation fails
+            UserDefaults.standard.set("guest_fallback_demo", forKey: "database_user_id")
+            Superwall.shared.identify(userId: "guest_fallback_demo")
+            SuperwallManager.shared.updateSubscriptionPlan(.none)
+            webSocketService.connect()
+
+            print("⚠️ Proceeding with fallback demo mode due to user creation failure")
+
+        } catch {
+            print("❌ Unexpected error creating demo user: \(error)")
+
+            // Fallback: still proceed with dummy ID
+            UserDefaults.standard.set("guest_fallback_demo", forKey: "database_user_id")
+            Superwall.shared.identify(userId: "guest_fallback_demo")
+            SuperwallManager.shared.updateSubscriptionPlan(.none)
+            webSocketService.connect()
+
+            print("⚠️ Proceeding with fallback demo mode due to unexpected error")
+        }
     }
 }
 
@@ -548,3 +670,4 @@ struct SignUpOptionsView: View {
     SignUpView()
         .environmentObject(WebSocketService())
 }
+
