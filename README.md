@@ -1,6 +1,6 @@
-# SnatchShot 📸✨
+# Slay AI 📸✨
 
-**AI-Powered Fashion Styling App** - Get personalized fashion recommendations and outfit suggestions using advanced AI and computer vision.
+**AI Pose Coach & Smart Camera** - Intelligent posing assistant that analyzes your personality, location, outfit, and context to suggest the perfect poses. Features automatic camera optimization, retro digital filters, and premium features with integrated payments.
 
 ![iOS](https://img.shields.io/badge/iOS-15.0+-blue.svg)
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)
@@ -9,12 +9,13 @@
 
 ## 🌟 Features
 
-- **AI-Powered Pose Analysis**: Advanced computer vision to analyze your poses and body type
-- **Personalized Recommendations**: Get fashion suggestions tailored to your style and preferences
-- **Real-time Processing**: WebSocket-powered real-time image processing and feedback
-- **Fashion Gallery**: Browse and manage your styled photos
+- **AI Pose Coach**: Intelligent pose suggestions based on personality, location, outfit, and context
+- **Smart Camera Optimization**: Automatic camera settings for perfect shots every time
+- **Retro Digital Filters**: Classic digital camera filters and effects
+- **Real-time Pose Analysis**: WebSocket-powered live feedback and pose guidance
+- **Photo Gallery**: Organize and manage your posed photos
 - **Social Integration**: Google Sign-In for seamless user experience
-- **Premium Features**: Superwall-powered subscriptions for enhanced functionality
+- **Premium Experience**: Superwall-powered subscriptions for advanced features
 
 ## 📱 Screenshots
 
@@ -213,10 +214,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🏆 Acknowledgments
 
-- **AI/ML Team**: For the amazing pose analysis and styling algorithms
-- **Design Team**: For the beautiful UI/UX design
-- **Open Source Community**: For the amazing libraries and tools
+- **AI/ML Team**: For the revolutionary pose coaching and camera intelligence algorithms
+- **Design Team**: For the intuitive camera interface and pose suggestion UX
+- **Open Source Community**: For the amazing libraries and tools powering the smart camera features
 
 ---
 
-**Made with ❤️ for fashion lovers worldwide**
+**Made with ❤️ for photographers and pose enthusiasts worldwide**
