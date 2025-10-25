@@ -25,3 +25,6 @@ Package.resolved
 # Configuration files with secrets
 SnatchShot/Config.xcconfig
 .env
+
+# Example files (these should be committed)
+!SnatchShot/Config.xcconfig.example

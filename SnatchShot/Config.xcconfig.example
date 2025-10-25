@@ -1,0 +1,34 @@
+// Configuration file for SnatchShot
+// Copy this file to Config.xcconfig and fill in your actual values
+// This file should NOT be committed to version control
+
+// Bundle ID: com.rushant.snatchshotapp
+// Team ID: YOUR_TEAM_ID_HERE
+
+// Google Sign In Configuration
+GOOGLE_CLIENT_ID = your_google_client_id_here.apps.googleusercontent.com
+
+// Apple Sign In Configuration
+APPLE_TEAM_ID = YOUR_APPLE_TEAM_ID
+APPLE_SERVICES_ID = com.yourdomain.yourapp.signin
+APPLE_KEY_ID = YOUR_APPLE_KEY_ID
+APPLE_PRIVATE_KEY = -----BEGIN PRIVATE KEY-----YOUR_PRIVATE_KEY_HERE-----END PRIVATE KEY-----
+
+// Database API Configuration
+DATABASE_API_BASE_URL = http://your_api_domain.com/api
+DATABASE_API_TIMEOUT = 30
+
+// WebSocket Configuration
+WEBSOCKET_BASE_URL = ws://your_websocket_domain.com:4001
+
+// Analytics Configuration
+// Mixpanel - Main project token
+MIXPANEL_TOKEN = your_mixpanel_token_here
+// For testing, use: your_test_token_here
+
+// AppsFlyer Configuration
+APPSFLYER_DEV_KEY = your_appsflyer_dev_key_here
+APPLE_APP_ID = your_apple_app_id_here
+
+// Other API keys and configuration
+// Add other sensitive configuration here
