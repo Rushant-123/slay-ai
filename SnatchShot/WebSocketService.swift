@@ -492,7 +492,7 @@ public class WebSocketService: NSObject, ObservableObject {
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
     private var serverURL: URL {
-        let baseURL = "ws://13.221.107.42:4001"
+        let baseURL = Configuration.shared.webSocketBaseURL
         if let userId = UserDefaults.standard.string(forKey: "database_user_id") {
             return URL(string: "\(baseURL)?userId=\(userId)")!
         } else {
@@ -1362,7 +1362,7 @@ public class WebSocketService: NSObject, ObservableObject {
         print("🔄 Starting HTTP request to trigger WebSocket events...")
 
         // Create HTTP request to /process-image endpoint with userId as query parameter
-        var urlString = "http://13.221.107.42:4000/process-image"
+        var urlString = "\(Configuration.shared.databaseAPIBaseURL)/process-image"
         if let userId = userId {
             urlString += "?userId=\(userId)"
         }
@@ -2012,7 +2012,7 @@ extension WebSocketService: URLSessionWebSocketDelegate {
                              isGenerated: Bool = false,
                              metadata: PhotoMetadata? = nil) async throws -> APIPhoto {
 
-        let urlString = "http://13.221.107.42:4000/api/pictures/upload"
+        let urlString = "\(Configuration.shared.databaseAPIBaseURL)/api/pictures/upload"
         guard let url = URL(string: urlString) else {
             throw URLError(.badURL)
         }
@@ -2118,7 +2118,7 @@ extension WebSocketService: URLSessionWebSocketDelegate {
                                        referenceType: String,
                                        userId: String) async throws -> (reference: ReferenceImage, genderResult: GenderDetectionResult?) {
 
-        let urlString = "http://13.221.107.42:4000/api/references/upload?userId=\(userId)"
+        let urlString = "\(Configuration.shared.databaseAPIBaseURL)/api/references/upload?userId=\(userId)"
         guard let url = URL(string: urlString) else {
             throw URLError(.badURL)
         }

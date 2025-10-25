@@ -45,7 +45,7 @@
 		<true/>
 		<key>NSExceptionDomains</key>
 		<dict>
-			<key>13.221.107.42</key>
+			<key>your-api-domain.com</key>
 			<dict>
 				<key>NSAllowsArbitraryLoadsInWebContent</key>
 				<true/>

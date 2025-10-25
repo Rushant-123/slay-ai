@@ -282,7 +282,7 @@ struct PoseSuggestionsView: View {
             }
 
             // Create URL request
-            var request = URLRequest(url: URL(string: "http://13.221.107.42:4000/process-image")!)
+            var request = URLRequest(url: URL(string: "\(Configuration.shared.databaseAPIBaseURL)/process-image")!)
             request.httpMethod = "POST"
 
             // Create multipart form data

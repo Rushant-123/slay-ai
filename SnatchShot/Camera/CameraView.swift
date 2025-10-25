@@ -899,6 +899,17 @@ struct CameraView: View {
         } message: {
             Text(viewModel.processingErrorMessage)
         }
+        .sheet(isPresented: $viewModel.showFilterPresets) {
+            FilterSelectionView(
+                selectedPreset: Binding(
+                    get: { camera.currentPreset },
+                    set: { camera.setPreset($0) }
+                ),
+                isPresented: $viewModel.showFilterPresets,
+                camera: camera,
+                previewImage: viewModel.lastTakenPhoto
+            )
+        }
         .onAppear {
             AnalyticsService.shared.trackCameraOpened()
             viewModel.setup(camera: camera, webSocketService: webSocketService, isVerificationMode: isVerificationMode, dismiss: dismiss)
@@ -1200,6 +1211,7 @@ struct CameraPreviewLayer: View {
                         CameraPreview(
                             session: camera.session,
                             currentFilter: camera.currentFilter,
+                            currentPreset: camera.currentPreset,
                             contrast: camera.contrast,
                             brightness: camera.brightness,
                             saturation: camera.saturation
@@ -1776,15 +1788,33 @@ struct RightSideControlsView: View {
                         // Filter button
                         Button {
                             withAnimation(.easeInOut(duration: 0.3)) {
-                    viewModel.isFilterDrawerOpen.toggle()
-                                }
+                                viewModel.isFilterDrawerOpen.toggle()
+                            }
                         } label: {
-                            Image(systemName: "camera.filters")
-                                .font(.system(size: 18))
-                    .foregroundColor(camera.currentFilter != .none ? Color(red: 0.600, green: 0.545, blue: 0.941) : .white)
-                                .frame(width: 36, height: 36)
-                                .background(.ultraThinMaterial.opacity(0.8), in: Circle())
-            }
+                            ZStack {
+                                Image(systemName: "camera.filters")
+                                    .font(.system(size: 18))
+                                    .foregroundColor((camera.currentFilter != .none || camera.currentPreset != nil) ? Color(red: 0.600, green: 0.545, blue: 0.941) : .white)
+                                    .frame(width: 36, height: 36)
+                                    .background(.ultraThinMaterial.opacity(0.8), in: Circle())
+
+                                // Clear overlay when filter/preset is active
+                                if camera.currentFilter != .none || camera.currentPreset != nil {
+                                    Button {
+                                        // Clear all filters and presets
+                                        camera.setFilter(.none)
+                                        camera.setPreset(nil)
+                                        let generator = UIImpactFeedbackGenerator(style: .light)
+                                        generator.impactOccurred()
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.white.opacity(0.8))
+                                    }
+                                    .offset(x: 12, y: -12)
+                                }
+                            }
+                        }
             .background(
                 GeometryReader { geo in
                     Color.clear
@@ -2057,7 +2087,45 @@ struct FilterDrawerView: View {
                 Spacer()
                 
                 VStack(spacing: 0) {
-                    // Filter thumbnails
+                    // Header with preset button
+                    HStack {
+                        Text("Filters")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Button {
+                            // Open preset filter selection
+                            viewModel.showFilterPresets = true
+                            viewModel.isFilterDrawerOpen = false
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "wand.and.stars")
+                                    .font(.system(size: 16))
+                                Text("Presets")
+                                    .font(.subheadline)
+                                    .fontWeight(camera.currentPreset != nil ? .semibold : .regular)
+                            }
+                            .foregroundColor(camera.currentPreset != nil ? .purple : .white.opacity(0.8))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(.ultraThinMaterial.opacity(0.6))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(camera.currentPreset != nil ? Color.purple.opacity(0.5) : Color.white.opacity(0.2), lineWidth: 1)
+                                    )
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+
+                    // Legacy Filter thumbnails
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                         ForEach(CameraFilter.allCases, id: \.self) { filter in

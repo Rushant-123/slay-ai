@@ -44,6 +44,9 @@
 		86EAFC5B2E8D917600D301BF /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86EAFC5A2E8D917600D301BF /* SubscriptionManager.swift */; };
 		86EAFCAE2E8FC90300D301BF /* SuperwallPurchaseController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86EAFCAD2E8FC90300D301BF /* SuperwallPurchaseController.swift */; };
 		86EAFCAF2E8FC90300D301BF /* SuperwallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86EAFCAC2E8FC90300D301BF /* SuperwallManager.swift */; };
+		86EBEA5A2E9CE2C200E20C03 /* FilterSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86EBEA582E9CE2C200E20C03 /* FilterSelectionView.swift */; };
+		86EBEA5B2E9CE2C200E20C03 /* ModularFilterProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86EBEA592E9CE2C200E20C03 /* ModularFilterProcessor.swift */; };
+		86EBEA5C2E9CE2C200E20C03 /* FilterPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86EBEA572E9CE2C200E20C03 /* FilterPreset.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -100,6 +103,9 @@
 		86EAFC5A2E8D917600D301BF /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
 		86EAFCAC2E8FC90300D301BF /* SuperwallManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperwallManager.swift; sourceTree = "<group>"; };
 		86EAFCAD2E8FC90300D301BF /* SuperwallPurchaseController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperwallPurchaseController.swift; sourceTree = "<group>"; };
+		86EBEA572E9CE2C200E20C03 /* FilterPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterPreset.swift; sourceTree = "<group>"; };
+		86EBEA582E9CE2C200E20C03 /* FilterSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterSelectionView.swift; sourceTree = "<group>"; };
+		86EBEA592E9CE2C200E20C03 /* ModularFilterProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModularFilterProcessor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -215,6 +221,9 @@
 		86B5450F2E77E9E700FEADDB /* Camera */ = {
 			isa = PBXGroup;
 			children = (
+				86EBEA572E9CE2C200E20C03 /* FilterPreset.swift */,
+				86EBEA582E9CE2C200E20C03 /* FilterSelectionView.swift */,
+				86EBEA592E9CE2C200E20C03 /* ModularFilterProcessor.swift */,
 				86EAFC582E87CE7F00D301BF /* CameraTutorialView.swift */,
 				860C37D22E83E80200F72A48 /* CameraViewModel.swift */,
 				869FB6EF2E7C82B7007CB309 /* EnhancedLoaderView.swift */,
@@ -398,6 +407,9 @@
 				86B545112E77EA0400FEADDB /* CameraService.swift in Sources */,
 				869FB6F12E7C82B7007CB309 /* EnhancedLoaderView.swift in Sources */,
 				86A884B92E7D4793007462BD /* WebSocketService.swift in Sources */,
+				86EBEA5A2E9CE2C200E20C03 /* FilterSelectionView.swift in Sources */,
+				86EBEA5B2E9CE2C200E20C03 /* ModularFilterProcessor.swift in Sources */,
+				86EBEA5C2E9CE2C200E20C03 /* FilterPreset.swift in Sources */,
 				86EAFC592E87CE7F00D301BF /* CameraTutorialView.swift in Sources */,
 				869FB6F22E7C82B7007CB309 /* WebmLoaderView.swift in Sources */,
 				86B545152E77EA6000FEADDB /* CameraView.swift in Sources */,

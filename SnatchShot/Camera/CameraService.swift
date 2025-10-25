@@ -284,6 +284,7 @@ class CameraService: NSObject, ObservableObject {
     @Published var nightMode: NightMode = .off
     @Published var nightModeIntensity: Float = 0.5 // 0.0 to 1.0
     @Published var currentFilter: CameraFilter = .none
+    @Published var currentPreset: FilterPreset?
 
     // UI Helper Properties
     @Published var minExposureTargetBias: CGFloat = -2.0
@@ -836,13 +837,28 @@ class CameraService: NSObject, ObservableObject {
     func setFilter(_ filter: CameraFilter) {
         print("📷 CameraService.setFilter called: \(filter.rawValue)")
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         currentFilter = filter
+        currentPreset = nil  // Clear preset when using legacy filter
         filterProcessor?.currentFilter = filter
-        
+        filterProcessor?.setCurrentPreset(nil)
+
         let endTime = CFAbsoluteTimeGetCurrent()
         let duration = endTime - startTime
         print("📷 CameraService.setFilter completed in \(duration * 1000)ms")
+    }
+
+    func setPreset(_ preset: FilterPreset?) {
+        print("📷 CameraService.setPreset called: \(preset?.name ?? "none")")
+        let startTime = CFAbsoluteTimeGetCurrent()
+
+        currentPreset = preset
+        currentFilter = .none  // Clear legacy filter when using preset
+        filterProcessor?.setCurrentPreset(preset)
+
+        let endTime = CFAbsoluteTimeGetCurrent()
+        let duration = endTime - startTime
+        print("📷 CameraService.setPreset completed in \(duration * 1000)ms")
     }
 
     // MARK: - Utility Methods
@@ -866,6 +882,7 @@ class CameraService: NSObject, ObservableObject {
             saturation = 1.0
             nightMode = .auto
             currentFilter = .none
+            currentPreset = nil
             whiteBalanceTemperature = 5500.0
             whiteBalanceTint = 0.0
 
@@ -1522,7 +1539,12 @@ class CameraService: NSObject, ObservableObject {
         print("📸 Processing captured image - Size: \(image.size)")
 
         // Apply filters to captured photo
-        let processedImage = filterProcessor?.applyFilter(to: image, filter: currentFilter) ?? image
+        let processedImage: UIImage
+        if let preset = currentPreset, let processor = filterProcessor {
+            processedImage = processor.applyPreset(to: image, preset: preset)
+        } else {
+            processedImage = filterProcessor?.applyFilter(to: image, filter: currentFilter) ?? image
+        }
         lastPhoto = processedImage
 
         print("📸 Processed image - Size: \(processedImage.size)")

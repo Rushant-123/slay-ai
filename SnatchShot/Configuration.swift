@@ -63,6 +63,19 @@ class Configuration {
         return 30.0
     }
 
+    // MARK: - WebSocket
+    var webSocketBaseURL: String {
+        if let envURL = ProcessInfo.processInfo.environment["WEBSOCKET_BASE_URL"] {
+            return envURL
+        }
+
+        if let configURL = getValue(for: "WEBSOCKET_BASE_URL") {
+            return configURL
+        }
+
+        fatalError("WebSocket Base URL not configured. Set WEBSOCKET_BASE_URL in Config.xcconfig or environment variables.")
+    }
+
     // MARK: - AppsFlyer
     var appsFlyerDevKey: String {
         if let envKey = ProcessInfo.processInfo.environment["APPSFLYER_DEV_KEY"] {

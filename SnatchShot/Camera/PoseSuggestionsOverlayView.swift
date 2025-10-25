@@ -113,14 +113,9 @@ struct PoseSuggestionsOverlayView: View {
                                                 // Extract image and navigate to gallery
                                                 if let imageData = Data(base64Encoded: suggestion.image),
                                                    let uiImage = UIImage(data: imageData) {
-                                                    // Apply same smart rotation as display
-                                                    let correctedImage: UIImage
-                                                    if uiImage.size.width > uiImage.size.height {
-                                                        correctedImage = uiImage.rotate90DegreesClockwise() ?? uiImage
-                                                    } else {
-                                                        correctedImage = uiImage
-                                                    }
-                                                    selectedImage = correctedImage
+                                                    // Use image exactly as received from socket - no rotation or modification
+                                                    print("🖼️ Gallery navigation: using original image dimensions: \(uiImage.size)")
+                                                    selectedImage = uiImage
                                                     showGallery = true
                                                 }
                                             } label: {
@@ -260,11 +255,16 @@ struct PoseSuggestionsOverlayView: View {
     private func setupWebSocket() {
         print("🔌 Setting up WebSocket event handlers")
 
-        // Handle processing UI ready - start showing cards after analysis and animation
+                // Handle processing UI ready - start showing cards after analysis and animation
         webSocketService.onProcessingUIReady
             .receive(on: DispatchQueue.main)
             .sink { suggestion in
                 print("🎯 Processing UI ready - adding suggestion to cards view: \(suggestion.title)")
+                // Log dimensions as received from socket
+                if let imageData = Data(base64Encoded: suggestion.image),
+                   let uiImage = UIImage(data: imageData) {
+                    print("📏 Socket image dimensions: \(uiImage.size), orientation: \(uiImage.imageOrientation.rawValue)")
+                }
                 DispatchQueue.main.async {
                     // Add each suggestion as it arrives (may be multiple from initial batch)
                     if !self.suggestions.contains(where: { $0.id == suggestion.id }) {
@@ -325,6 +325,11 @@ struct PoseSuggestionsOverlayView: View {
             .receive(on: DispatchQueue.main)
             .sink { suggestion in
                 print("📸 Additional image received after UI ready - adding to suggestions")
+                // Log dimensions as received from socket
+                if let imageData = Data(base64Encoded: suggestion.image),
+                   let uiImage = UIImage(data: imageData) {
+                    print("📏 Additional socket image dimensions: \(uiImage.size), orientation: \(uiImage.imageOrientation.rawValue)")
+                }
                 DispatchQueue.main.async {
                     // Only add if not already present and we haven't reached the limit (prevent duplicates and overflow)
                     if !self.suggestions.contains(where: { $0.id == suggestion.id }) && self.suggestions.count < 4 {
@@ -473,17 +478,12 @@ struct PoseSuggestionsOverlayView: View {
     private func cacheGeneratedImage(_ suggestion: PoseSuggestion) {
         if let imageData = Data(base64Encoded: suggestion.image),
            let uiImage = UIImage(data: imageData) {
-            // Apply same smart rotation as display
-            let correctedImage: UIImage
-            if uiImage.size.width > uiImage.size.height {
-                correctedImage = uiImage.rotate90DegreesClockwise() ?? uiImage
-            } else {
-                correctedImage = uiImage
-            }
+            // Use image exactly as received from socket - no rotation or modification
+            print("🖼️ Caching generated pose suggestion with original dimensions: \(uiImage.size)")
 
             let imageId = suggestion.id
             print("📸 Caching generated pose suggestion with ID: \(imageId)")
-            ImageCacheService.shared.cacheImage(correctedImage, id: imageId, type: .generated)
+            ImageCacheService.shared.cacheImage(uiImage, id: imageId, type: .generated)
 
             // Verify the image was cached
             if let cachedImage = ImageCacheService.shared.getCachedImage(id: imageId) {
@@ -535,22 +535,9 @@ struct SimplePoseSuggestionCard: View {
               let uiImage = UIImage(data: imageData) else {
             return nil
         }
-        print("🖼️ Generated image orientation: \(uiImage.imageOrientation.rawValue), size: \(uiImage.size)")
-
-        // Smart rotation: if image is landscape (width > height), rotate to portrait
-        // This handles API inconsistency where some images come back landscape
-        let corrected: UIImage
-        if uiImage.size.width > uiImage.size.height {
-            // Landscape → rotate 90° clockwise to portrait
-            corrected = uiImage.rotate90DegreesClockwise() ?? uiImage
-            print("🖼️ Landscape detected - rotated 90° clockwise to: \(corrected.size)")
-        } else {
-            // Already portrait or square → no rotation needed
-            corrected = uiImage
-            print("🖼️ Portrait detected - no rotation needed")
-        }
-
-        return corrected
+        // Use image exactly as received from socket - no rotation or modification
+        print("🖼️ Card display: using original image dimensions: \(uiImage.size)")
+        return uiImage
     }
 
     var body: some View {
@@ -575,6 +562,9 @@ struct SimplePoseSuggestionCard: View {
                                 topTrailingRadius: 15
                             )
                         )
+                        .onAppear {
+                            print("🖼️ Card displaying image with dimensions: \(image.size)")
+                        }
                         .offset(x: 0, y: 0) // No offset, perfect alignment
                         .mask(
                             // Reveal mask that animates from top to bottom

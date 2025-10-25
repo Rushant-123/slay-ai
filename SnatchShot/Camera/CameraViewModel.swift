@@ -3,6 +3,50 @@ import AVFoundation
 import UIKit
 import Foundation
 
+// MARK: - UIImage Extension for Rotation
+extension UIImage {
+    func rotated(by radians: CGFloat) -> UIImage? {
+        // Calculate new size after rotation
+        let newSize = CGRect(origin: .zero, size: self.size)
+            .applying(CGAffineTransform(rotationAngle: radians))
+            .integral.size
+
+        // Ensure positive dimensions
+        let finalSize = CGSize(width: abs(newSize.width), height: abs(newSize.height))
+
+        UIGraphicsBeginImageContextWithOptions(finalSize, false, self.scale)
+        guard let context = UIGraphicsGetCurrentContext() else { return nil }
+
+        // Save context state
+        context.saveGState()
+
+        // Move to center of new size
+        context.translateBy(x: finalSize.width / 2, y: finalSize.height / 2)
+
+        // Apply rotation
+        context.rotate(by: radians)
+
+        // Flip Y axis for UIKit coordinate system and draw
+        context.scaleBy(x: 1.0, y: -1.0)
+
+        // Draw the image centered
+        let drawRect = CGRect(
+            x: -self.size.width / 2,
+            y: -self.size.height / 2,
+            width: self.size.width,
+            height: self.size.height
+        )
+        context.draw(self.cgImage!, in: drawRect)
+
+        // Restore context and get image
+        context.restoreGState()
+        let rotatedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+
+        return rotatedImage
+    }
+}
+
 // MARK: - Camera View Model
 @MainActor
 class CameraViewModel: ObservableObject {
@@ -35,6 +79,7 @@ class CameraViewModel: ObservableObject {
     // Horizontal panels state
     @Published var showExposurePanel = false
     @Published var showWhiteBalancePanel = false
+    @Published var showFilterPresets = false
     
     
     // Error handling and retry
@@ -323,8 +368,35 @@ class CameraViewModel: ObservableObject {
         print("🔄 Image size: \(image.size)")
         print("🔄 Image orientation: \(image.imageOrientation.rawValue)")
 
-        // Let iOS handle orientation automatically - just ensure EXIF is preserved
-        return image
+        // iOS camera already handles orientation, but let's ensure proper rotation
+        // The key insight: device orientation tells us how the device is held,
+        // and we need to rotate the image to match natural viewing orientation
+
+        var correctedImage = image
+
+        // Apply rotation based on device orientation when needed
+        // iOS camera captures in landscape by default, so we need to rotate to match device orientation
+        switch deviceOrientation {
+        case .portrait:
+            // Portrait: rotate 90 degrees counter-clockwise to match portrait viewing
+            correctedImage = image.rotated(by: -.pi/2) ?? image
+        case .portraitUpsideDown:
+            // Upside down: rotate 90 degrees clockwise
+            correctedImage = image.rotated(by: .pi/2) ?? image
+        case .landscapeLeft:
+            // Landscape left (home button left): no rotation needed (natural camera orientation)
+            correctedImage = image
+        case .landscapeRight:
+            // Landscape right (home button right): rotate 180 degrees
+            correctedImage = image.rotated(by: .pi) ?? image
+        default:
+            // Face up/down or unknown: assume portrait and rotate 90 degrees counter-clockwise
+            correctedImage = image.rotated(by: -.pi/2) ?? image
+        }
+
+        print("🔄 Corrected image size: \(correctedImage.size)")
+        print("🔄 Corrected image orientation: \(correctedImage.imageOrientation.rawValue)")
+        return correctedImage
     }
 
     private func handleCapturedImage(_ image: UIImage, camera: CameraService, isVerificationMode: Bool, dismiss: DismissAction) {
@@ -343,6 +415,7 @@ class CameraViewModel: ObservableObject {
 
         let orientedImage = applyCorrectOrientation(to: image, deviceOrientation: deviceOrientation, isFrontCamera: isFrontCamera)
         capturedForReview = orientedImage
+        print("📏 CameraViewModel: Original captured image size: \(image.size), oriented image size: \(orientedImage.size)")
         
         // Track photo captured
         AnalyticsService.shared.trackPhotoCaptured(

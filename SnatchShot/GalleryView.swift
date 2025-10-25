@@ -13,10 +13,22 @@ struct GalleryPhoto: Identifiable {
     let timestamp: Date
 
     var thumbnail: UIImage {
-        let size = CGSize(width: 120, height: 120)
-        let renderer = UIGraphicsImageRenderer(size: size)
+        // Create thumbnail scaled proportionally from original dimensions
+        let maxThumbnailSize: CGFloat = 120
+        let aspectRatio = image.size.width / image.size.height
+
+        var thumbnailSize: CGSize
+        if aspectRatio > 1 {
+            // Landscape: fit to max width
+            thumbnailSize = CGSize(width: maxThumbnailSize, height: maxThumbnailSize / aspectRatio)
+        } else {
+            // Portrait: fit to max height
+            thumbnailSize = CGSize(width: maxThumbnailSize * aspectRatio, height: maxThumbnailSize)
+        }
+
+        let renderer = UIGraphicsImageRenderer(size: thumbnailSize)
         return renderer.image { context in
-            let rect = CGRect(origin: .zero, size: size)
+            let rect = CGRect(origin: .zero, size: thumbnailSize)
             self.image.draw(in: rect)
         }
     }
@@ -94,11 +106,7 @@ struct GalleryView: View {
         self.preselectedImage = preselectedImage
     }
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 1),
-        GridItem(.flexible(), spacing: 1),
-        GridItem(.flexible(), spacing: 1)
-    ]
+    // Remove fixed columns - we'll use a different layout approach
 
     private var filteredPhotos: [GalleryPhoto] {
         switch selectedFilter {
@@ -180,7 +188,11 @@ struct GalleryView: View {
                     }
                 } else {
                     ScrollView {
-                        LazyVGrid(columns: columns, spacing: 1) {
+                        LazyVGrid(columns: [
+                            GridItem(.flexible(), spacing: 4),
+                            GridItem(.flexible(), spacing: 4),
+                            GridItem(.flexible(), spacing: 4)
+                        ], spacing: 4) {
                             ForEach(filteredPhotos) { photo in
                                 Button(action: {
                                     selectedImage = photo.image
@@ -190,14 +202,15 @@ struct GalleryView: View {
                                 }) {
                                     Image(uiImage: photo.thumbnail)
                                         .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(height: UIScreen.main.bounds.width / 3)
+                                        .scaledToFit()
+                                        .frame(maxWidth: .infinity, maxHeight: 120) // Maintain aspect ratio within grid cells
                                         .clipped()
                                         .cornerRadius(4)
                                 }
                             }
                         }
-                        .padding(1)
+                        .padding(.horizontal, 4)
+                        .padding(.top, 8)
                     }
                 }
             }
