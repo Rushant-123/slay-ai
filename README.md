@@ -14,7 +14,8 @@
 - **Retro Digital Filters**: Classic digital camera filters and effects
 - **Real-time Pose Analysis**: WebSocket-powered live feedback and pose guidance
 - **Photo Gallery**: Organize and manage your posed photos
-- **Social Integration**: Google Sign-In for seamless user experience
+- **Authentication**: Google Sign-In and Apple Sign-In for secure access
+- **Women-Only Community**: Face verification ensures exclusive access for women
 - **Premium Experience**: Superwall-powered subscriptions for advanced features
 
 ## 📱 Screenshots
@@ -79,6 +80,12 @@ Create a `.env` file in the project root:
 # Google Sign In Configuration
 GOOGLE_CLIENT_ID=your_google_client_id_here.apps.googleusercontent.com
 
+# Apple Sign In Configuration
+APPLE_TEAM_ID=your_apple_team_id
+APPLE_SERVICES_ID=com.yourdomain.yourapp.signin
+APPLE_KEY_ID=your_apple_key_id
+APPLE_PRIVATE_KEY=your_apple_private_key
+
 # Database API Configuration
 DATABASE_API_BASE_URL=http://your_api_domain.com/api
 DATABASE_API_TIMEOUT=30
@@ -141,6 +148,7 @@ APPLE_APP_ID = your_apple_app_id
 - **Metal**: GPU-accelerated image processing
 - **Superwall**: Subscription and paywall management
 - **WebSocket**: Real-time bidirectional communication
+- **Face Verification**: AI-powered gender verification for community access
 
 ## 🔧 Development
 
