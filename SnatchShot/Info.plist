@@ -11,9 +11,9 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.450844969376-g4t9iv2qeitf6stbkvcbgn9auli91qb5</string>
+				<string>$(GOOGLE_CLIENT_ID)</string>
 			</array>
-		</dict>
+		</dict> 
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>

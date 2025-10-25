@@ -33,7 +33,7 @@ class Configuration {
 
         // Fallback - replace with your actual client ID for development only
         // NEVER commit this to version control
-        return "YOUR_DEVELOPMENT_CLIENT_ID_HERE"
+        fatalError("Google Client ID not configured. Set GOOGLE_CLIENT_ID in Config.xcconfig or environment variables.")
     }
 
     // MARK: - Database API
@@ -46,7 +46,7 @@ class Configuration {
             return configURL
         }
 
-        return "http://13.221.107.42:4000/api"
+        fatalError("Database API Base URL not configured. Set DATABASE_API_BASE_URL in Config.xcconfig or environment variables.")
     }
 
     var databaseAPITimeout: TimeInterval {
@@ -74,7 +74,7 @@ class Configuration {
         }
 
         // Fallback - AppsFlyer Dev Key
-        return "359SBFQ3jWDaaixAkLLYQe"
+        fatalError("AppsFlyer Dev Key not configured. Set APPSFLYER_DEV_KEY in Config.xcconfig or environment variables.")
     }
 
     var appleAppID: String {
@@ -87,7 +87,7 @@ class Configuration {
         }
 
         // Fallback - Apple App ID
-        return "6752805655"
+        fatalError("Apple App ID not configured. Set APPLE_APP_ID in Config.xcconfig or environment variables.")
     }
 
     // MARK: - Mixpanel
@@ -101,8 +101,7 @@ class Configuration {
         }
 
         // Main project token - replace with testing token for development
-        return "cd4a90e61de738a65d45f68d22260ed2" // Main: Slay AI
-        // Testing token: 0f3e2bf7cbcac849008b25c27ba7cf1b (SaaSDen Inc project)
+        fatalError("Mixpanel Token not configured. Set MIXPANEL_TOKEN in Config.xcconfig or environment variables.")
     }
 
     // MARK: - Helper Methods
